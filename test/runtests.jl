@@ -1,6 +1,6 @@
-using StrcturedSolvers
+using StructuredSolvers
 using Test
 
-@testset "StrcturedSolvers.jl" begin
+@testset "StructuredSolvers.jl" begin
     # Write your tests here.
 end

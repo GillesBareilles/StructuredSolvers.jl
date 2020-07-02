@@ -1,4 +1,4 @@
-module StrcturedSolvers
+module StructuredSolvers
 
 # Write your package code here.
 

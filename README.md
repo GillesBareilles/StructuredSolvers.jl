@@ -1,1 +1,1 @@
-# StrcturedSolvers
+# StructuredSolvers

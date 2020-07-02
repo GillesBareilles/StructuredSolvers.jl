@@ -1,4 +1,4 @@
-name = "StrcturedSolvers"
+name = "StructuredSolvers"
 uuid = "d9bbf7bc-fdaa-4477-a432-ffa81b30db87"
 authors = ["Gilles Bareilles <gilles.bareilles@protonmail.com> and contributors"]
 version = "0.1.0"
