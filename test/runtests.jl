@@ -1,6 +1,6 @@
-using StructuredCompositeOpt
+using StrcturedSolvers
 using Test
 
-@testset "StructuredCompositeOpt.jl" begin
+@testset "StrcturedSolvers.jl" begin
     # Write your tests here.
 end

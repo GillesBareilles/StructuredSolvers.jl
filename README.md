@@ -1,1 +1,1 @@
-# StructuredCompositeOpt
+# StrcturedSolvers

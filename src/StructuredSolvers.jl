@@ -1,4 +1,4 @@
-module StructuredCompositeOpt
+module StrcturedSolvers
 
 # Write your package code here.
 
