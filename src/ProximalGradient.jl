@@ -3,9 +3,11 @@ struct ProximalGradient{T} <: Optimizer
     backtracking::Bool
     extrapolation::T
 end
-ProximalGradient(;backtracking = true, extrapolation=VanillaProxGrad()) = ProximalGradient(backtracking, extrapolation)
+function ProximalGradient(; backtracking = true, extrapolation = VanillaProxGrad())
+    return ProximalGradient(backtracking, extrapolation)
+end
 
-mutable struct ProximalGradientState{Tx, Te} <: OptimizerState
+mutable struct ProximalGradientState{Tx,Te} <: OptimizerState
     x::Tx
     x_old::Tx
     M::Manifold
@@ -16,8 +18,23 @@ mutable struct ProximalGradientState{Tx, Te} <: OptimizerState
     γ::Float64
     extrapolation_state::Te
 end
-function ProximalGradientState(o::ProximalGradient, x::Tx; γ=1e5, extra_state::Te=extrapolation_state(o.extrapolation, x)) where {Tx, O, Te}
-    return ProximalGradientState{Tx, Te}(zero(x), zero(x), Euclidean(size(x)...), 0.0, 0.0, zero(x), zero(x), γ, extra_state)
+function ProximalGradientState(
+    o::ProximalGradient,
+    x::Tx;
+    γ = 1e5,
+    extra_state::Te = extrapolation_state(o.extrapolation, x),
+) where {Tx,O,Te}
+    return ProximalGradientState{Tx,Te}(
+        zero(x),
+        zero(x),
+        Euclidean(size(x)...),
+        0.0,
+        0.0,
+        zero(x),
+        zero(x),
+        γ,
+        extra_state,
+    )
 end
 
 # struct GenericTrace <: OptimizerTrace
@@ -39,6 +56,7 @@ function print_header(pg::ProximalGradient)
     println("--- Proximal Gradient")
     println(" - backtracking:       ", pg.backtracking)
     println(" - extrapolation:       ", pg.extrapolation)
+    return
 end
 
 function update_fg∇f!(state::ProximalGradientState, pb)
@@ -65,10 +83,15 @@ end
 
 function display_logs_header(o::ProximalGradient)
     println("it.   F(x)                    f(x)       g(x)       Manifold      γ   step")
+    return
 end
 
 function display_logs(state::ProximalGradientState, pb, optimizer, iteration)
-    @printf "%4i  %.16e  %-.3e  %-.3e  %-12s  %-.3e  %.3e\n" iteration state.f_x+state.g_x state.f_x state.g_x state.M state.γ norm(state.x-state.x_old)
+    @printf "%4i  %.16e  %-.3e  %-.3e  %-12s  %-.3e  %.3e\n" iteration state.f_x +
+                                                                              state.g_x state.f_x state.g_x state.M state.γ norm(
+        state.x - state.x_old,
+    )
+    return
 end
 
 
@@ -97,7 +120,9 @@ mutable struct AcceleratedProxGradState{Tx} <: ProxGradExtrapolation
     y_old::Tx
 end
 
-extrapolation_state(::AcceleratedProxGrad, x) = AcceleratedProxGradState(1.0, zero(x), zero(x))
+function extrapolation_state(::AcceleratedProxGrad, x)
+    return AcceleratedProxGradState(1.0, zero(x), zero(x))
+end
 function extrapolation!(::AcceleratedProxGrad, state, pb)
     extra_state = state.extrapolation_state
 
@@ -105,9 +130,10 @@ function extrapolation!(::AcceleratedProxGrad, state, pb)
     M = prox_αg!(pb, extra_state.y, state.temp, state.γ)
     state.M = M
 
-    t_next = 1 + sqrt(1+4*extra_state.t^2)
+    t_next = 1 + sqrt(1 + 4 * extra_state.t^2)
 
-    state.x .= extra_state.y + (extra_state.t-1)/t_next * (extra_state.y-extra_state.y_old)
+    state.x .=
+        extra_state.y + (extra_state.t - 1) / t_next * (extra_state.y - extra_state.y_old)
     extra_state.t = t_next
     extra_state.y_old .= extra_state.y
 
@@ -132,7 +158,7 @@ function backtrack_f_lipschitzgradient!(state, pb)
         state.temp .= state.x .- state.γ .* state.∇f_x
 
         # f(pb, state.temp) ≤ state.f_x - 1/(2*state.γ) * norm(state.temp-state.x)^2 && break
-        f(pb, state.temp) ≤ state.f_x - state.γ/2 * ∇f_norm2 && break
+        f(pb, state.temp) ≤ state.f_x - state.γ / 2 * ∇f_norm2 && break
 
         ncalls_f += 1
         state.γ = state.γ / τ
