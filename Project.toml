@@ -3,6 +3,14 @@ uuid = "d9bbf7bc-fdaa-4477-a432-ffa81b30db87"
 authors = ["Gilles Bareilles <gilles.bareilles@protonmail.com> and contributors"]
 version = "0.1.0"
 
+[deps]
+CompositeProblems = "67d01e61-181f-490c-a91b-494ea2f69877"
+DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+StructuredProximalOperators = "622438d8-7036-4667-80f6-bb5000de1630"
+TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
+
 [compat]
 julia = "1"
 
