@@ -45,7 +45,14 @@ function optimize!(
     if show_trace
         print_header(optimizer)
         display_logs_header(optimizer)
-        optimizationstate = display_logs(state, pb, optimizer, iteration, time()-t0, optimstate_extensions)
+        optimizationstate = display_logs(
+            state,
+            pb,
+            optimizer,
+            iteration,
+            time() - t0,
+            optimstate_extensions,
+        )
         global tr = Vector([optimizationstate])
 
         @show typeof(tr)
@@ -63,7 +70,14 @@ function optimize!(
 
         _time = time()
         if show_trace
-            optimizationstate = display_logs(state, pb, optimizer, iteration, _time-t0, optimstate_extensions)
+            optimizationstate = display_logs(
+                state,
+                pb,
+                optimizer,
+                iteration,
+                _time - t0,
+                optimstate_extensions,
+            )
             push!(tr, optimizationstate)
         end
 

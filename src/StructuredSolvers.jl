@@ -9,6 +9,8 @@ using Printf
 using TimerOutputs
 using Parameters
 
+import Base.show
+
 const to = TimerOutput()
 
 abstract type Optimizer end
@@ -23,7 +25,10 @@ include("trace.jl")
 include("optimize.jl")
 include("ProximalGradient.jl")
 
-using PGFPlotsX, LaTeXStrings
+using Colors
+using PGFPlotsX
+using LaTeXStrings
+using Contour
 
 include("plot_trace.jl")
 
@@ -33,6 +38,7 @@ export VanillaProxGrad, VanillaProxGradState
 export AcceleratedProxGrad, AcceleratedProxGradState
 
 export OptimizationState, OptimizationTrace
+export Optimizer
 
 export optimize!
 

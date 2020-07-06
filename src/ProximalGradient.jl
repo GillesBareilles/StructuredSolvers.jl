@@ -7,6 +7,15 @@ function ProximalGradient(; backtracking = true, extrapolation = VanillaProxGrad
     return ProximalGradient(backtracking, extrapolation)
 end
 
+function Base.show(io::IO, o::ProximalGradient)
+    print(io, "Proximal Gradient ")
+    o.backtracking && print(io, "(bt)")
+    show(io, o.extrapolation)
+    return
+end
+
+
+
 mutable struct ProximalGradientState{Tx,Te} <: OptimizerState
     x::Tx
     x_old::Tx
@@ -73,9 +82,15 @@ function display_logs_header(o::ProximalGradient)
     return
 end
 
-function display_logs(state::ProximalGradientState, pb, optimizer, iteration, time, optimstate_extensions)
-    @printf "%4i  %.16e  %-.3e  %-.3e  %-12s  %-.3e  %.3e\n" iteration state.f_x +
-                                                                              state.g_x state.f_x state.g_x state.M state.γ norm(
+function display_logs(
+    state::ProximalGradientState,
+    pb,
+    optimizer,
+    iteration,
+    time,
+    optimstate_extensions,
+)
+    @printf "%4i  %.16e  %-.3e  %-.3e  %-12s  %-.3e  %.3e\n" iteration state.f_x + state.g_x state.f_x state.g_x state.M state.γ norm(
         state.x - state.x_old,
     )
 
@@ -84,19 +99,23 @@ function display_logs(state::ProximalGradientState, pb, optimizer, iteration, ti
     keys = []
     values = []
     for osextension in optimstate_extensions
-        push!(keys, )
+        push!(keys)
         push!(values, copy(osextension.getvalue(state)))
     end
 
     return OptimizationState(
-        it=iteration,
+        it = iteration,
         time = time,
         f_x = state.f_x,
         g_x = state.g_x,
-        additionalinfo = (; zip(
-            [ osextension.key for osextension in optimstate_extensions ],
-            [ copy(osextension.getvalue(state)) for osextension in optimstate_extensions ],
-        )...)
+        additionalinfo = (;
+            zip(
+                [osextension.key for osextension in optimstate_extensions],
+                [
+                    copy(osextension.getvalue(state))
+                    for osextension in optimstate_extensions
+                ],
+            )...),
     )
 end
 
@@ -120,6 +139,9 @@ function extrapolation!(::VanillaProxGrad, state, pb)
     return
 end
 
+function Base.show(io::IO, ::VanillaProxGrad)
+    return print(io, "")
+end
 
 #
 ## Accelerated proximal gradient
@@ -129,6 +151,10 @@ mutable struct AcceleratedProxGradState{Tx} <: ProxGradExtrapolation
     t::Float64
     y::Tx
     y_old::Tx
+end
+
+function Base.show(io::IO, ::AcceleratedProxGrad)
+    return print(io, " Accelerated")
 end
 
 function extrapolation_state(::AcceleratedProxGrad, x)

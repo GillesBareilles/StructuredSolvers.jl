@@ -6,29 +6,36 @@ function get_iterate(state)
 end
 
 function main()
-    n = 20
+    n = 2
     pb = get_lasso(n, 12, 0.6)
+    x0 = zeros(n) .+ 50
 
-    x0 = zeros(n)
+
+    optimstate_extens = [(key = :x, getvalue = get_iterate)]
+    optimdata = Dict{Optimizer,OptimizationTrace}()
+
 
     optimizer = ProximalGradient()
-    # to, tr = @time optimize!(pb, optimizer, x0)
+    to_pg, tr_pg = optimize!(pb, optimizer, x0; optimstate_extensions = optimstate_extens)
+    optimdata[optimizer] = tr_pg
+
+    optimizer = ProximalGradient(; extrapolation = AcceleratedProxGrad())
+    to_apg, tr_apg = optimize!(pb, optimizer, x0; optimstate_extensions = optimstate_extens)
+    optimdata[optimizer] = tr_apg
 
 
-    # optimizer = ProximalGradient(extrapolation = AcceleratedProxGrad())
-    # @time optimize!(pb, optimizer, x0)
 
-    optimstate_extens = [
-        (
-            key = :iterate,
-            getvalue = get_iterate
-        ),
-    ]
+    ## Compute minimum functional value.
+    Fmin_pg = minimum(state.f_x + state.g_x for state in tr_pg)
+    Fmin_apg = minimum(state.f_x + state.g_x for state in tr_apg)
 
-    to, tr = @time optimize!(pb, optimizer, x0, optimstate_extensions = optimstate_extens)
 
-    return tr
+    # return StructuredSolvers.plot_fvals_time(optimdata, min(Fmin_pg, Fmin_apg))
+
+    plotit = StructuredSolvers.plot_iterates(pb, optimdata)
+    pgfsave("fig.tex", plotit, include_preamble = true)
+    return plotit
 end
 
 
-tr = main()
+r = main()
