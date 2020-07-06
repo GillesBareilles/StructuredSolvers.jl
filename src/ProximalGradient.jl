@@ -37,19 +37,6 @@ function ProximalGradientState(
     )
 end
 
-# struct GenericTrace <: OptimizerTrace
-#     it::Int64
-#     time::Float64
-#     f_x::Float64
-#     g_x::Float64
-#     norm_∇f_x::Float64
-#     nb_calls_f::Int64
-#     nb_calls_g::Int64
-#     nb_calls_∇f::Int64
-#     nb_calls_proxg::Int64
-#     nb_calls_∇²fh::Int64
-#     nb_calls_∇²gξ::Int64
-# end
 
 function print_header(pg::ProximalGradient)
     println("---------------------")
@@ -86,17 +73,38 @@ function display_logs_header(o::ProximalGradient)
     return
 end
 
-function display_logs(state::ProximalGradientState, pb, optimizer, iteration)
+function display_logs(state::ProximalGradientState, pb, optimizer, iteration, time, optimstate_extensions)
     @printf "%4i  %.16e  %-.3e  %-.3e  %-12s  %-.3e  %.3e\n" iteration state.f_x +
                                                                               state.g_x state.f_x state.g_x state.M state.γ norm(
         state.x - state.x_old,
     )
-    return
+
+
+    ## TODO: This section of code is generic, should be factored. Plus, can the many allocs be avoided when zipping and building temp arrays?
+    keys = []
+    values = []
+    for osextension in optimstate_extensions
+        push!(keys, )
+        push!(values, copy(osextension.getvalue(state)))
+    end
+
+    return OptimizationState(
+        it=iteration,
+        time = time,
+        f_x = state.f_x,
+        g_x = state.g_x,
+        additionalinfo = (; zip(
+            [ osextension.key for osextension in optimstate_extensions ],
+            [ copy(osextension.getvalue(state)) for osextension in optimstate_extensions ],
+        )...)
+    )
 end
 
 
 
-######
+#
+## Vanilla proximal gradient
+#
 abstract type ProxGradExtrapolation end
 abstract type ProxGradExtrapolationState <: OptimizerState end
 
@@ -113,6 +121,9 @@ function extrapolation!(::VanillaProxGrad, state, pb)
 end
 
 
+#
+## Accelerated proximal gradient
+#
 struct AcceleratedProxGrad <: ProxGradExtrapolation end
 mutable struct AcceleratedProxGradState{Tx} <: ProxGradExtrapolation
     t::Float64

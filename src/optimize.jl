@@ -11,7 +11,7 @@ function update_iterate!(state, pb, optimizer)
     return error("update_iterate! not implemented for optimizer state $(typeof(state)), problem $(typeof(pb)) and optimizer $(typeof(optimizer)).")
 end
 
-function display_logs(state, pb, optimizer, iteration)
+function display_logs(state, pb, optimizer, iteration, time, ose)
     return error("display_logs not implemented for optimizer state $(typeof(state)), problem $(typeof(pb)) and optimizer $(typeof(optimizer)).")
 end
 
@@ -25,6 +25,7 @@ function optimize!(
     optimizer::O,
     initial_x;
     state::S = initial_state(optimizer, initial_x),
+    optimstate_extensions = [],
 ) where {O<:Optimizer,S<:OptimizerState}
 
     ## TODO: factor options
@@ -41,9 +42,16 @@ function optimize!(
 
     update_fg∇f!(state, pb)
 
-    show_trace && print_header(optimizer)
-    show_trace && display_logs_header(optimizer)
-    show_trace && display_logs(state, pb, optimizer, iteration)
+    if show_trace
+        print_header(optimizer)
+        display_logs_header(optimizer)
+        optimizationstate = display_logs(state, pb, optimizer, iteration, time()-t0, optimstate_extensions)
+        global tr = Vector([optimizationstate])
+
+        @show typeof(tr)
+    end
+
+    trace = OptimizationState
 
     while !converged && !stopped && iteration < iterations_limit
         iteration += 1
@@ -52,12 +60,16 @@ function optimize!(
 
         @timeit to "oracles calls" update_fg∇f!(state, pb)
 
-        show_trace && display_logs(state, pb, optimizer, iteration)
 
         _time = time()
+        if show_trace
+            optimizationstate = display_logs(state, pb, optimizer, iteration, _time-t0, optimstate_extensions)
+            push!(tr, optimizationstate)
+        end
+
         stopped_by_time_limit = _time - t0 > time_limit
         stopped = stopped_by_time_limit
     end
 
-    return to
+    return to, tr
 end
