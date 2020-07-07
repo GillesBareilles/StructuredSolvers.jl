@@ -17,6 +17,7 @@ StructuredProximalOperators = "622438d8-7036-4667-80f6-bb5000de1630"
 TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 
 [compat]
+Contour = "0.5"
 DataStructures = "0.17"
 TimerOutputs = "0.5"
 julia = "1"
