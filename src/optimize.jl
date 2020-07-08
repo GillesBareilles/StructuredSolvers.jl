@@ -26,11 +26,12 @@ function optimize!(
     initial_x;
     state::S = initial_state(optimizer, initial_x),
     optimstate_extensions = [],
+    iterations_limit = 30,
 ) where {O<:Optimizer,S<:OptimizerState}
 
     ## TODO: factor options
     show_trace = true
-    iterations_limit = 20
+    # iterations_limit = 20
     time_limit = 30
     tracing = show_trace
     stopped = false
@@ -54,11 +55,8 @@ function optimize!(
             optimstate_extensions,
         )
         global tr = Vector([optimizationstate])
-
-        @show typeof(tr)
     end
 
-    trace = OptimizationState
 
     while !converged && !stopped && iteration < iterations_limit
         iteration += 1

@@ -26,9 +26,20 @@ COLORS_10 = [
 MARKERS = ["x", "+", "star", "oplus", "triangle", "diamond", "pentagon"]
 
 
+get_legendname(optimizer) = Base.summary(optimizer)
+
+function get_curve_params(optimizer, COLORS, algoid, markrepeat)
+    return Dict{Any,Any}(
+        "mark" => MARKERS[mod(algoid, 7) + 1],
+        "color" => COLORS[algoid],
+        "mark repeat" => markrepeat,
+        # "mark phase" => 7,
+        # "mark options" => "draw=black",
+    )
+end
 
 function plot_curves(
-    optimizer_to_trace::Dict{Optimizer,OptimizationTrace},
+    optimizer_to_trace::AbstractDict{Optimizer,OptimizationTrace},
     get_abscisses,
     get_ordinates;
     xlabel = "time (s)",
@@ -48,27 +59,27 @@ function plot_curves(
         push!(
             plotdata,
             PlotInc(
-                PGFPlotsX.Options(
-                    "mark" => MARKERS[mod(algoid, 7) + 1],
-                    "color" => COLORS[algoid],
-                    "mark repeat" => markrepeat,
-                    # "mark phase" => 7,
-                    # "mark options" => "draw=black",
-                ),
+                PGFPlotsX.Options(get_curve_params(
+                    optimizer,
+                    COLORS,
+                    algoid,
+                    markrepeat,
+                )...),
                 Coordinates(get_abscisses(trace), get_ordinates(trace)),
             ),
         )
-        push!(plotdata, LegendEntry(replace(string(optimizer), "-" => " ")))
+        push!(plotdata, LegendEntry(get_legendname(optimizer)))
         algoid += 1
     end
     return @pgf Axis(
         {
             ymode = ymode,
-            height = "10cm",
-            width = "10cm",
+            # height = "10cm",
+            # width = "10cm",
             xlabel = xlabel,
             ylabel = ylabel,
             legend_pos = "north east",
+            legend_style = "font=\\footnotesize",
             legend_cell_align = "left",
             xmin = 0,
         },
@@ -76,28 +87,27 @@ function plot_curves(
     )
 end
 
-
-
-
-
 """
-    plot_fvals_time(optimizer_to_trace; Fmin)
+    plot_fvals_iteration(optimizer_to_trace; Fmin)
 
 Plot suboptimality as a function of time. The baseline functional value should be supplied
 for computing suboptimality.
 """
-function plot_fvals_time(optimizer_to_trace::Dict{Optimizer,OptimizationTrace}, Fmin)
+function plot_fvals_iteration(
+    optimizer_to_trace::AbstractDict{Optimizer,OptimizationTrace},
+    Fmin,
+)
     get_abscisses(states) = [state.it for state in states]
     function get_ordinates(states)
         return [state.f_x + state.g_x - Fmin for state in states]
     end
 
     return plot_curves(
-        optimizer_to_trace::Dict{Optimizer,OptimizationTrace},
+        optimizer_to_trace::AbstractDict{Optimizer,OptimizationTrace},
         get_abscisses,
         get_ordinates,
-        xlabel = "time (s)",
-        ylabel = "",
+        xlabel = "iterations",
+        ylabel = L"$F(x_k)-F^\star$",
         ymode = "log",
         nmarks = 15,
     )
@@ -112,7 +122,7 @@ end
 
 Plot iterates for 2d problems.
 """
-function plot_iterates(pb, optimizer_to_trace::Dict{Optimizer,OptimizationTrace})
+function plot_iterates(pb, optimizer_to_trace::AbstractDict{Optimizer,OptimizationTrace})
 
     ## TODOs: - automatic / paramters for xmin, xmax, ymin, ymax.
     ## TODOs: - Set colors as in AI paper
@@ -154,8 +164,6 @@ function plot_iterates(pb, optimizer_to_trace::Dict{Optimizer,OptimizationTrace}
     add_manifold!(plotdata, coords)
     coords = [(0, ymin), (0, ymax)]
     add_manifold!(plotdata, coords)
-    @show plotdata[1]
-    @show typeof(plotdata[1])
 
     return @pgf Axis(
         {
@@ -187,7 +195,7 @@ end
 function add_contour!(plotdata, pb, xmin, xmax, ymin, ymax)
     x = xmin:((xmax - xmin) / 100):xmax
     y = ymin:((ymax - ymin) / 100):ymax
-    F = (x, y) -> f(pb, [x, y]) + g(pb, [x, y])
+    F = (x, y) -> f(pb, [x, y])
 
     @assert problem_dimension(pb) == 2 "Problem should be two dimensional."
 

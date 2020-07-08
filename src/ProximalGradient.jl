@@ -17,6 +17,7 @@ end
 
 
 mutable struct ProximalGradientState{Tx,Te} <: OptimizerState
+    it::Int64
     x::Tx
     x_old::Tx
     M::Manifold
@@ -29,14 +30,16 @@ mutable struct ProximalGradientState{Tx,Te} <: OptimizerState
 end
 function ProximalGradientState(
     o::ProximalGradient,
-    x::Tx;
+    x::Tx,
+    g::R;
     γ = 1e5,
-    extra_state::Te = extrapolation_state(o.extrapolation, x),
-) where {Tx,O,Te}
+    extra_state::Te = extrapolation_state(o.extrapolation, x, g),
+) where {Tx,O,Te,R}
     return ProximalGradientState{Tx,Te}(
-        zero(x),
-        zero(x),
-        Euclidean(size(x)...),
+        0,
+        copy(x),
+        copy(x),
+        wholespace_manifold(g, x),
         0.0,
         0.0,
         zero(x),
@@ -59,6 +62,7 @@ function update_fg∇f!(state::ProximalGradientState, pb)
     state.f_x = f(pb, state.x)
     state.g_x = g(pb, state.x)
     state.∇f_x = ∇f(pb, state.x)
+    state.it += 1
     return
 end
 
@@ -72,7 +76,7 @@ function update_iterate!(state::ProximalGradientState, pb, optimizer::ProximalGr
     end
 
     state.x_old .= state.x
-    extrapolation!(optimizer.extrapolation, state, pb)
+    extrapolation!(optimizer.extrapolation, state, state.extrapolation_state, pb)
     return
 end
 
@@ -117,64 +121,6 @@ function display_logs(
                 ],
             )...),
     )
-end
-
-
-
-#
-## Vanilla proximal gradient
-#
-abstract type ProxGradExtrapolation end
-abstract type ProxGradExtrapolationState <: OptimizerState end
-
-
-struct VanillaProxGrad <: ProxGradExtrapolation end
-mutable struct VanillaProxGradState <: ProxGradExtrapolationState end
-
-extrapolation_state(::VanillaProxGrad, x) = VanillaProxGradState()
-function extrapolation!(::VanillaProxGrad, state, pb)
-    state.temp .= state.x .- state.γ .* state.∇f_x
-    M = prox_αg!(pb, state.x, state.temp, state.γ)
-    state.M = M
-    return
-end
-
-function Base.show(io::IO, ::VanillaProxGrad)
-    return print(io, "")
-end
-
-#
-## Accelerated proximal gradient
-#
-struct AcceleratedProxGrad <: ProxGradExtrapolation end
-mutable struct AcceleratedProxGradState{Tx} <: ProxGradExtrapolation
-    t::Float64
-    y::Tx
-    y_old::Tx
-end
-
-function Base.show(io::IO, ::AcceleratedProxGrad)
-    return print(io, " Accelerated")
-end
-
-function extrapolation_state(::AcceleratedProxGrad, x)
-    return AcceleratedProxGradState(1.0, zero(x), zero(x))
-end
-function extrapolation!(::AcceleratedProxGrad, state, pb)
-    extra_state = state.extrapolation_state
-
-    state.temp .= state.x .- state.γ .* state.∇f_x
-    M = prox_αg!(pb, extra_state.y, state.temp, state.γ)
-    state.M = M
-
-    t_next = 1 + sqrt(1 + 4 * extra_state.t^2)
-
-    state.x .=
-        extra_state.y + (extra_state.t - 1) / t_next * (extra_state.y - extra_state.y_old)
-    extra_state.t = t_next
-    extra_state.y_old .= extra_state.y
-
-    return
 end
 
 

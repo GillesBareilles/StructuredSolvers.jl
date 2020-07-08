@@ -24,6 +24,7 @@ abstract type OptimizerTrace end
 include("trace.jl")
 include("optimize.jl")
 include("ProximalGradient.jl")
+include("ProximalGradient_extrapolations.jl")
 
 using Colors
 using PGFPlotsX
@@ -36,6 +37,9 @@ include("plot_trace.jl")
 export ProximalGradient, ProximalGradientState
 export VanillaProxGrad, VanillaProxGradState
 export AcceleratedProxGrad, AcceleratedProxGradState
+export Test1ProxGrad, Test1ProxGradState
+export Test2ProxGrad, Test2ProxGradState
+export MFISTA, MFISTAState
 
 export OptimizationState, OptimizationTrace
 export Optimizer
