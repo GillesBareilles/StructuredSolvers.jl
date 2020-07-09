@@ -11,7 +11,7 @@ function update_iterate!(state, pb, optimizer)
     return error("update_iterate! not implemented for optimizer state $(typeof(state)), problem $(typeof(pb)) and optimizer $(typeof(optimizer)).")
 end
 
-function display_logs(state, pb, optimizer, iteration, time, ose)
+function display_logs(state, pb, optimizer, iteration, time, ose, tracing)
     return error("display_logs not implemented for optimizer state $(typeof(state)), problem $(typeof(pb)) and optimizer $(typeof(optimizer)).")
 end
 
@@ -24,13 +24,14 @@ function optimize!(
     pb::CompositeProblem,
     optimizer::O,
     initial_x;
-    state::S = initial_state(optimizer, initial_x),
+    state::S = initial_state(optimizer, initial_x, pb.regularizer),
     optimstate_extensions = [],
     iterations_limit = 30,
+    show_trace = true,
 ) where {O<:Optimizer,S<:OptimizerState}
 
     ## TODO: factor options
-    show_trace = true
+    # show_trace = true
     # iterations_limit = 20
     time_limit = 30
     tracing = show_trace
@@ -43,19 +44,18 @@ function optimize!(
 
     update_fg∇f!(state, pb)
 
-    if show_trace
-        print_header(optimizer)
-        display_logs_header(optimizer)
-        optimizationstate = display_logs(
-            state,
-            pb,
-            optimizer,
-            iteration,
-            time() - t0,
-            optimstate_extensions,
-        )
-        global tr = Vector([optimizationstate])
-    end
+    show_trace && print_header(optimizer)
+    show_trace && display_logs_header(optimizer)
+    optimizationstate = display_logs(
+        state,
+        pb,
+        optimizer,
+        iteration,
+        time() - t0,
+        optimstate_extensions,
+        tracing,
+    )
+    tr = Vector([optimizationstate])
 
 
     while !converged && !stopped && iteration < iterations_limit
@@ -67,21 +67,21 @@ function optimize!(
 
 
         _time = time()
-        if show_trace
-            optimizationstate = display_logs(
-                state,
-                pb,
-                optimizer,
-                iteration,
-                _time - t0,
-                optimstate_extensions,
-            )
-            push!(tr, optimizationstate)
-        end
+
+        optimizationstate = display_logs(
+            state,
+            pb,
+            optimizer,
+            iteration,
+            _time - t0,
+            optimstate_extensions,
+            tracing,
+        )
+        push!(tr, optimizationstate)
 
         stopped_by_time_limit = _time - t0 > time_limit
         stopped = stopped_by_time_limit
     end
 
-    return to, tr
+    return tr
 end

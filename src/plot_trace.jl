@@ -46,6 +46,7 @@ function plot_curves(
     ylabel = "",
     ymode = "log",
     nmarks = 15,
+    includelegend = true,
 )
     plotdata = []
     ntraces = length(optimizer_to_trace)
@@ -68,7 +69,7 @@ function plot_curves(
                 Coordinates(get_abscisses(trace), get_ordinates(trace)),
             ),
         )
-        push!(plotdata, LegendEntry(get_legendname(optimizer)))
+        includelegend && push!(plotdata, LegendEntry(get_legendname(optimizer)))
         algoid += 1
     end
     return @pgf Axis(
@@ -115,6 +116,14 @@ end
 
 
 
+function get_iteratesplot_params(optimizer, COLORS, algoid)
+    return Dict{Any,Any}(
+        "mark" => MARKERS[mod(algoid, 7) + 1],
+        "color" => COLORS[algoid],
+        # "mark phase" => 7,
+        # "mark options" => "draw=black",
+    )
+end
 
 
 """
@@ -126,6 +135,9 @@ function plot_iterates(pb, optimizer_to_trace::AbstractDict{Optimizer,Optimizati
 
     ## TODOs: - automatic / paramters for xmin, xmax, ymin, ymax.
     ## TODOs: - Set colors as in AI paper
+    ntraces = length(optimizer_to_trace)
+    COLORS = (ntraces <= 7 ? COLORS_7 : COLORS_10)
+
     xmin, xmax = -1, 4
     ymin, ymax = -1, 2
 
@@ -135,22 +147,20 @@ function plot_iterates(pb, optimizer_to_trace::AbstractDict{Optimizer,Optimizati
     add_contour!(plotdata, pb, xmin, xmax, ymin, ymax)
 
     ## Plot algorithms iterates
+    algoid = 1
     for (optimizer, trace) in optimizer_to_trace
         coords = [(state.additionalinfo.x[1], state.additionalinfo.x[2]) for state in trace]
 
         push!(
             plotdata,
             PlotInc(
-                PGFPlotsX.Options(Dict(
-                    # "mark options"=>nothing,
-                    "smooth" => nothing,
-                    "mark size" => "{1pt}",# color={rgb,1:red,0.0;green,0.3843;blue,0.9922},
-                    "mark" => "*",#, very thick]
-                )...),
+                PGFPlotsX.Options(get_iteratesplot_params(optimizer, COLORS, algoid)...),
                 Coordinates(coords),
             ),
         )
-        push!(plotdata, LegendEntry(replace(string(optimizer), "-" => " ")))
+        push!(plotdata, LegendEntry(get_legendname(optimizer)))
+
+        algoid += 1
     end
 
 

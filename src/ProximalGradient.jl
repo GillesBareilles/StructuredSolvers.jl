@@ -66,7 +66,7 @@ function update_fg∇f!(state::ProximalGradientState, pb)
     return
 end
 
-initial_state(o::ProximalGradient, x) = ProximalGradientState(o, x)
+initial_state(o::ProximalGradient, x, reg) = ProximalGradientState(o, x, reg)
 
 function update_iterate!(state::ProximalGradientState, pb, optimizer::ProximalGradient)
 
@@ -93,10 +93,13 @@ function display_logs(
     iteration,
     time,
     optimstate_extensions,
+    tracing,
 )
-    @printf "%4i  %.16e  %-.3e  %-.3e  %-12s  %-.3e  %.3e\n" iteration state.f_x + state.g_x state.f_x state.g_x state.M state.γ norm(
-        state.x - state.x_old,
-    )
+    tracing &&
+        @printf "%4i  %.16e  %-.3e  %-.3e  %-12s  %-.3e  %.3e\n" iteration state.f_x +
+                                                                           state.g_x state.f_x state.g_x state.M state.γ norm(
+            state.x - state.x_old,
+        )
 
 
     ## TODO: This section of code is generic, should be factored. Plus, can the many allocs be avoided when zipping and building temp arrays?
@@ -104,7 +107,7 @@ function display_logs(
     values = []
     for osextension in optimstate_extensions
         push!(keys)
-        push!(values, copy(osextension.getvalue(state)))
+        push!(values, osextension.getvalue(state))
     end
 
     return OptimizationState(

@@ -186,14 +186,16 @@ function extrapolation!(o::Test2ProxGrad, pgstate, extrastate, pb)
     t_next = (p + sqrt(q + r * accel_state.t^2)) / 2
 
     extrastate.candidate_pg .= accel_state.y
-    extrastate.candidate_apg .= accel_state.y .+ (accel_state.t - 1) / t_next * (accel_state.y .- accel_state.y_old)
+    extrastate.candidate_apg .=
+        accel_state.y .+ (accel_state.t - 1) / t_next * (accel_state.y .- accel_state.y_old)
 
     # Compute image of candidates by PG, only manifold is relevant.
     ## 1. proxgrad
     pgstate.temp .= extrastate.candidate_pg .- pgstate.γ .* ∇f(pb, extrastate.candidate_pg)
     M_PG_pg = prox_αg!(pb, pgstate.temp, pgstate.temp, pgstate.γ)
 
-    pgstate.temp .= extrastate.candidate_apg .- pgstate.γ .* ∇f(pb, extrastate.candidate_apg)
+    pgstate.temp .=
+        extrastate.candidate_apg .- pgstate.γ .* ∇f(pb, extrastate.candidate_apg)
     M_PG_apg = prox_αg!(pb, pgstate.temp, pgstate.temp, pgstate.γ)
 
     ## Here, if apg has less structure than pg (in image by proxgrad), no acceleration
@@ -261,8 +263,7 @@ function extrapolation!(o::MFISTA, pgstate, extrastate, pb)
     end
 
     pgstate.x .=
-        extrastate.z .+
-        accel_state.t / t_next .* (accel_state.y .- extrastate.z) .+
+        extrastate.z .+ accel_state.t / t_next .* (accel_state.y .- extrastate.z) .+
         (accel_state.t - 1) / t_next .* (extrastate.z .- extrastate.z_old)
     pgstate.M = M
 
