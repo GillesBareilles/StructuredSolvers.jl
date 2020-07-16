@@ -63,47 +63,6 @@ function extrapolation!(apg::AcceleratedProxGrad, pgstate, extrastate, pb)
 end
 
 
-# ## Conditional acceleration
-# function extra_CondInertia(pb::AbstractProblem{T}, y, y_old, it, mem) where T<:AbstractRegularizer
-#     x_next = y
-
-#     if !identification_test(pb, y, y_old, it, mem)
-#         x_next += (mem[:t_old]-1)/mem[:t] * (y-y_old)
-#     else
-#         println("No acceleration this step.")
-#     end
-
-#     return x_next
-# end
-
-# ## Predictive conditional acceleration
-# # Checks wether acceleration degrades future structure wrt to non accelerated structure.
-# function extra_CondPredInertia(pb::AbstractProblem{T}, y, y_old, it, mem) where T<:AbstractRegularizer
-#     x_next_pg = y
-#     x_next_accel = y + (mem[:t_old]-1)/mem[:t] * (y-y_old)
-
-#     α = mem[:α]
-#     T_α_gradprox(pb, x) = prox_αg(pb, x - α * ∇f(pb, x), α)
-
-
-#     pt_pg = T_α_gradprox(pb, x_next_pg)
-#     pt_accel = T_α_gradprox(pb, x_next_accel)
-
-#     support_proxgrad = get_support(T, pt_pg, tol=1e-11)
-#     support_accel    = get_support(T, pt_accel, tol=1e-11)
-
-#     nextpoint = x_next_accel
-#     if length(setdiff(support_proxgrad, support_accel)) > 0
-#         println("No acceleration this step.")
-#         nextpoint = x_next_pg
-
-#     end
-
-#     return nextpoint
-# end
-
-
-
 #
 ## T1
 #

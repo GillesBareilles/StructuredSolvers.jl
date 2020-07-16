@@ -34,7 +34,7 @@ function ProximalGradientState(
     g::R;
     γ = 1e5,
     extra_state::Te = extrapolation_state(o.extrapolation, x, g),
-) where {Tx,O,Te,R}
+) where {Tx,Te,R}
     return ProximalGradientState{Tx,Te}(
         0,
         copy(x),
@@ -61,7 +61,7 @@ end
 function update_fg∇f!(state::ProximalGradientState, pb)
     state.f_x = f(pb, state.x)
     state.g_x = g(pb, state.x)
-    state.∇f_x = ∇f(pb, state.x)
+    ∇f!(pb, state.∇f_x, state.x)
     state.it += 1
     return
 end
@@ -82,7 +82,7 @@ end
 
 
 function display_logs_header(o::ProximalGradient)
-    println("it.   F(x)                    f(x)       g(x)       Manifold      γ   step")
+    println("it.   F(x)                    f(x)       g(x)       γ          step       Manifold")
     return
 end
 
@@ -96,10 +96,10 @@ function display_logs(
     tracing,
 )
     tracing &&
-        @printf "%4i  %.16e  %-.3e  %-.3e  %-12s  %-.3e  %.3e\n" iteration state.f_x +
-                                                                           state.g_x state.f_x state.g_x state.M state.γ norm(
+        @printf "%4i  %.16e  %-.3e  %-.3e  %.3e  %-.3e  %-12s\n" iteration state.f_x +
+                                                                           state.g_x state.f_x state.g_x state.γ norm(
             state.x - state.x_old,
-        )
+        ) state.M
 
 
     ## TODO: This section of code is generic, should be factored. Plus, can the many allocs be avoided when zipping and building temp arrays?

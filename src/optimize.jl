@@ -55,7 +55,7 @@ function optimize!(
         optimstate_extensions,
         tracing,
     )
-    tr = Vector([optimizationstate])
+    tr = Vector{OptimizationState}([optimizationstate])
 
 
     while !converged && !stopped && iteration < iterations_limit
@@ -78,6 +78,9 @@ function optimize!(
             tracing,
         )
         push!(tr, optimizationstate)
+
+        # converged = (norm(state.x - state.x_old) < 1e-7)
+        converged = (state.f_x + state.g_x < 1e-12)
 
         stopped_by_time_limit = _time - t0 > time_limit
         stopped = stopped_by_time_limit
