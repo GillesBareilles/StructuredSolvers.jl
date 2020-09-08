@@ -17,9 +17,7 @@ function extrapolation!(::VanillaProxGrad, pgstate, extrapolationstate, pb)
     return
 end
 
-function Base.show(io::IO, ::VanillaProxGrad)
-    return print(io, "")
-end
+Base.summary(::VanillaProxGrad) = ""
 
 #
 ## Accelerated proximal gradient
@@ -36,9 +34,7 @@ mutable struct AcceleratedProxGradState{Tx} <: ProxGradExtrapolation
     y_old::Tx
 end
 
-function Base.show(io::IO, ::AcceleratedProxGrad)
-    return print(io, " Accelerated")
-end
+Base.summary(::AcceleratedProxGrad) = " Accelerated"
 
 function extrapolation_state(::AcceleratedProxGrad, x, g)
     return AcceleratedProxGradState(1.0, zero(x), zero(x))
@@ -108,9 +104,7 @@ function extrapolation!(o::Test1ProxGrad, pgstate, extrastate, pb)
     return
 end
 
-function Base.show(io::IO, ::Test1ProxGrad)
-    return print(io, " - Test 1")
-end
+Base.summary(::Test1ProxGrad) = " - Test 1"
 
 #
 ## T2
@@ -174,9 +168,7 @@ function extrapolation!(o::Test2ProxGrad, pgstate, extrastate, pb)
     return
 end
 
-function Base.show(io::IO, ::Test2ProxGrad)
-    return print(io, " - Test 2")
-end
+Base.summary(::Test2ProxGrad) = " - Test 2"
 
 
 
@@ -232,6 +224,4 @@ function extrapolation!(o::MFISTA, pgstate, extrastate, pb)
     return
 end
 
-function Base.show(io::IO, ::MFISTA)
-    return print(io, "MFISTA")
-end
+Base.summary(::MFISTA) = "MFISTA"

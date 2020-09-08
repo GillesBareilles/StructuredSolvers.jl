@@ -7,13 +7,11 @@ function ProximalGradient(; backtracking = true, extrapolation = VanillaProxGrad
     return ProximalGradient(backtracking, extrapolation)
 end
 
-function Base.show(io::IO, o::ProximalGradient)
-    print(io, "Proximal Gradient ")
-    o.backtracking && print(io, "(bt)")
-    show(io, o.extrapolation)
-    return
-end
-
+Base.summary(o::ProximalGradient) = string(
+    "Proximal Gradient ",
+    o.backtracking && "(bt)",
+    summary(o.extrapolation)
+)
 
 
 mutable struct ProximalGradientState{Tx,Te} <: OptimizerState
@@ -72,7 +70,7 @@ function update_iterate!(state::ProximalGradientState, pb, optimizer::ProximalGr
 
     ## Run backtracking line search to update estimate of gradient Lipschitz constant
     if optimizer.backtracking
-        backtrack_f_lipschitzgradient!(state, pb)
+        ncalls_f, state.γ = backtrack_f_lipschitzgradient!(state, pb, state.γ)
     end
 
     state.x_old .= state.x
@@ -131,7 +129,7 @@ end
 
 
 
-function backtrack_f_lipschitzgradient!(state, pb)
+function backtrack_f_lipschitzgradient!(state, pb, γ)
     τ = 1.2
 
     ∇f_norm2 = norm(state.∇f_x)^2
@@ -141,13 +139,13 @@ function backtrack_f_lipschitzgradient!(state, pb)
 
     it_ls = 0
     while it_ls <= itmax
-        state.temp .= state.x .- state.γ .* state.∇f_x
+        state.temp .= state.x .- γ .* state.∇f_x
 
-        # f(pb, state.temp) ≤ state.f_x - 1/(2*state.γ) * norm(state.temp-state.x)^2 && break
-        f(pb, state.temp) ≤ state.f_x - state.γ / 2 * ∇f_norm2 && break
+        # f(pb, state.temp) ≤ state.f_x - 1/(2*γ) * norm(state.temp-state.x)^2 && break
+        f(pb, state.temp) ≤ state.f_x - γ / 2 * ∇f_norm2 && break
 
         ncalls_f += 1
-        state.γ = state.γ / τ
+        γ = γ / τ
         it_ls += 1
     end
 
@@ -156,5 +154,5 @@ function backtrack_f_lipschitzgradient!(state, pb)
     end
 
 
-    return ncalls_f
+    return ncalls_f, γ
 end

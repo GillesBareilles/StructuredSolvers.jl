@@ -2,6 +2,7 @@ module StructuredSolvers
 
 # Write your package code here.
 
+using Manifolds
 using StructuredProximalOperators
 using CompositeProblems
 using DataStructures
@@ -9,7 +10,7 @@ using Printf
 using TimerOutputs
 using Parameters
 
-import Base.show
+import Base: show, summary
 
 const to = TimerOutput()
 
@@ -25,6 +26,33 @@ include("trace.jl")
 include("optimize.jl")
 include("ProximalGradient.jl")
 include("ProximalGradient_extrapolations.jl")
+
+include("PartlySmoothOptimizer.jl")
+export PartlySmoothOptimizer
+
+# Update strategies
+include("update_selectors/alternatingUpdateSelector.jl")
+include("update_selectors/manifold_following.jl")
+include("update_selectors/constant_manifold.jl")
+export AlternatingUpdateSelector
+export ManifoldFollowingSelector
+export ConstantManifoldSelector
+
+# Wholespace updates
+include("wholespace_updates/proximal_gradient.jl")
+export WholespaceProximalGradient
+
+# Manifold updates
+include("linesearches.jl")
+include("manifold_updates/tangent_ConjugatedGradient.jl")
+
+include("manifold_updates/manifold_identity.jl")
+include("manifold_updates/manifold_gradient.jl")
+include("manifold_updates/manifold_truncatednewton.jl")
+export ManifoldIdentity
+export ManifoldGradient
+export ManifoldTruncatedNewton
+
 
 using Colors
 using PGFPlotsX

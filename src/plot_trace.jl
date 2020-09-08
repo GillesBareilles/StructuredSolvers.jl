@@ -1,5 +1,3 @@
-
-
 COLORS_7 = [
     Colors.RGB(68 / 255, 119 / 255, 170 / 255),
     Colors.RGB(102 / 255, 204 / 255, 238 / 255),
@@ -39,7 +37,7 @@ function get_curve_params(optimizer, COLORS, algoid, markrepeat)
 end
 
 function plot_curves(
-    optimizer_to_trace::AbstractDict{Optimizer,OptimizationTrace},
+    optimizer_to_trace::AbstractDict{Optimizer, Any},
     get_abscisses,
     get_ordinates;
     xlabel = "time (s)",
@@ -79,7 +77,7 @@ function plot_curves(
             # width = "10cm",
             xlabel = xlabel,
             ylabel = ylabel,
-            legend_pos = "north east",
+            legend_pos = "outer north east",
             legend_style = "font=\\footnotesize",
             legend_cell_align = "left",
             xmin = 0,
@@ -95,16 +93,25 @@ Plot suboptimality as a function of time. The baseline functional value should b
 for computing suboptimality.
 """
 function plot_fvals_iteration(
-    optimizer_to_trace::AbstractDict{Optimizer,OptimizationTrace},
-    Fmin,
+    optimizer_to_trace::AbstractDict{Optimizer, Any};
+    Fmin=nothing,
 )
+    if isnothing(Fmin)
+        Fmin=+Inf
+        for (optimizer, trace) in optimizer_to_trace
+            for state in trace
+                Fmin = min(Fmin, state.f_x+state.g_x)
+            end
+        end
+    end
+
     get_abscisses(states) = [state.it for state in states]
     function get_ordinates(states)
         return [state.f_x + state.g_x - Fmin for state in states]
     end
 
     return plot_curves(
-        optimizer_to_trace::AbstractDict{Optimizer,OptimizationTrace},
+        optimizer_to_trace::AbstractDict{Optimizer, Any},
         get_abscisses,
         get_ordinates,
         xlabel = "iterations",
@@ -131,7 +138,7 @@ end
 
 Plot iterates for 2d problems.
 """
-function plot_iterates(pb, optimizer_to_trace::AbstractDict{Optimizer,OptimizationTrace})
+function plot_iterates(pb, optimizer_to_trace::AbstractDict{Optimizer, Any})
 
     ## TODOs: - automatic / paramters for xmin, xmax, ymin, ymax.
     ## TODOs: - Set colors as in AI paper
@@ -185,7 +192,7 @@ function plot_iterates(pb, optimizer_to_trace::AbstractDict{Optimizer,Optimizati
             xmax = xmax,
             ymin = ymin,
             ymax = ymax,
-            legend_pos = "north east",
+            legend_pos = "outer north east",
             legend_cell_align = "left",
             legend_style = "font=\\footnotesize",
             # title = "Problem $(pb.name) -- Iterates postion",

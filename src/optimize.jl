@@ -80,8 +80,9 @@ function optimize!(
         push!(tr, optimizationstate)
 
         # converged = (norm(state.x - state.x_old) < 1e-7)
-        converged = (state.f_x + state.g_x < 1e-12)
+        # converged = (state.f_x + state.g_x < 1e-12)
 
+        # stopped_by_empymanifold = manifold_dimension(state.M) == 0
         stopped_by_time_limit = _time - t0 > time_limit
         stopped = stopped_by_time_limit
     end
