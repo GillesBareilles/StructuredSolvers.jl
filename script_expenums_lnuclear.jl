@@ -7,7 +7,9 @@ using Random
 using Distributions
 
 include("COAP_commonparameters.jl")
-include("runexpenums.jl")
+include("execution.jl")
+include("plotting.jl")
+
 
 get_iterate(state) = state.x
 get_manifold(state) = state.M
@@ -15,36 +17,22 @@ get_manifold(state) = state.M
 function get_problems()
     problems = Dict()
 
-    seeds = 1:5
+    seeds = 1:30
 
-    ## Lasso l1
-    problems = Dict()
+    ## Nuclear least squares
+    problems = []
 
     n = (7, 6)
     m = 2^2
     sparsity = 3
 
-    # n = (10, 10)
-    # m = 8^2
-    # sparsity = 3
-
-    Random.seed!(1234)
-    xstart = rand(Normal(), n) .* 10
-
-    problems["lnuclear_randinit"] = []
     for seed in seeds
-        pb = get_random_qualifiedleastsquares(n, m, regularizer_lnuclear(1.0), sparsity, seed = seed+3)
-        push!(problems["lnuclear_randinit"], (pb = pb, xstart = xstart))
+        Random.seed!(seed+150)
+        xstart = rand(Normal(), n) .* 10
+
+        pb = get_random_qualifiedleastsquares(n, m, regularizer_lnuclear(1.0), sparsity, seed = seed)
+        push!(problems, (pb = pb, xstart = xstart))
     end
-
-    # ## Lasso l1 zero init
-    # l1_zeroinit_pbs = []
-
-    # for pb in l1_pbs
-    #     push!(l1_zeroinit_pbs, (name = "pblasso_l1", pb = pb.pb, xstart = zeros(n)))
-    # end
-
-    # problems["l1_zeroinit"] = l1_zeroinit_pbs
 
     return problems
 end
@@ -99,10 +87,51 @@ function get_algorithms()
     return algorithms
 end
 
-FIGS_FOLDER = "./figs"
-basename(pwd()) == "src" && (FIGS_FOLDER = joinpath("..", FIGS_FOLDER))
-!ispath(FIGS_FOLDER) && mkpath(FIGS_FOLDER)
+
+function main()
+    FIGS_FOLDER = "./figs"
+    basename(pwd()) == "src" && (FIGS_FOLDER = joinpath("..", FIGS_FOLDER))
+    !ispath(FIGS_FOLDER) && mkpath(FIGS_FOLDER)
 
 
-# run_expenums(get_problems(), get_algorithms(), FIGS_FOLDER=FIGS_FOLDER)
-run_expenums_moyenne(get_problems(), get_algorithms(), FIGS_FOLDER=FIGS_FOLDER)
+    ## Execute all algorithms
+    algo_pb_trace = run_algorithms_on_problems(get_problems(), get_algorithms())
+
+    ## Build performance indicator per algo, problem
+    get_abscisses(alg, pb, trace) = [state.it for state in trace]
+    function get_ordinates(alg, pb, trace)
+        M_x0 = pb.pb.M_x0
+        Ms = [state.additionalinfo.M for state in trace]
+        return 100*get_proportion_identifiedstructure(Ms, M_x0)
+    end
+    algo_pb_curve = extract_curves(algo_pb_trace, get_abscisses, get_ordinates)
+
+
+    # plot_all_curves(
+    #     algo_pb_curve,
+    #     "reg_lnuclear_randinit_allcurves",
+    #     FIGS_FOLDER = "./figs",
+    # )
+
+    # plot_aggregateproblems(
+    #     algo_pb_curve,
+    #     aggregate_pb_perfs = x -> quantile(x, 0.5),
+    #     "reg_lnuclear_randinit_median",
+    #     FIGS_FOLDER = "./figs",
+    # )
+
+    plot_aggregateproblems(
+        algo_pb_curve,
+        aggregate_pb_perfs = x -> mean(x),
+        "reg_lnuclear_randinit_mean",
+        FIGS_FOLDER = "./figs",
+    )
+
+    # plot_aggregateproblems_fillbetween(algo_pb_curve, "reg_lnuclear_fillbetween", FIGS_FOLDER="./figs")
+
+    # plot_performance_profile(algo_pb_trace, )
+
+    return
+end
+
+main()

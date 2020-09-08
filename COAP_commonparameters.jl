@@ -80,3 +80,70 @@ StructuredSolvers.get_iteratesplot_params(o::ProximalGradient{MFISTA}, COLORS, a
     "mark" => "pentagon*",
     "mark options" => ""
 )
+
+
+
+
+
+"""
+    nb_identified_manifolds(M::Manifold)
+
+Counts the number of "identified manifolds", monotone with manifold codimension. For l1,
+number of zeros; for fixed rank, `min(m, n)-k`...
+"""
+nb_identified_manifolds(M::Manifold) = 0
+nb_identified_manifolds(M::l1Manifold) = sum(1 .- M.nnz_coords)
+nb_identified_manifolds(M::Euclidean) = 0
+nb_identified_manifolds(M::PSphere) = 1
+function nb_identified_manifolds(M::ProductManifold)
+    return sum(nb_identified_manifolds(man) for man in M.manifolds)
+end
+nb_identified_manifolds(::FixedRankMatrices{m,n,k}) where {m,n,k} = min(m, n) - k
+
+"""
+nb_correctlyidentified_manifolds(M::Manifold, M_ref::Manifold)
+
+Counts the number of "identified manifolds" of `M` present in `M_ref`.
+"""
+nb_correctlyidentified_manifolds(M::Manifold, M_ref::Manifold) = 0
+function nb_correctlyidentified_manifolds(M::l1Manifold, M_ref::l1Manifold)
+    return dot(1 .- M.nnz_coords, 1 .- M_ref.nnz_coords)
+end
+nb_correctlyidentified_manifolds(M::Euclidean, M_ref::Euclidean) = 0
+nb_correctlyidentified_manifolds(M::PSphere, M_ref::PSphere) = M == M_ref
+function nb_correctlyidentified_manifolds(M::ProductManifold, M_ref::ProductManifold)
+    return sum(
+        nb_correctlyidentified_manifolds(M.manifolds[i], M_ref.manifolds[i])
+        for i in 1:length(M.manifolds)
+    )
+end
+function nb_correctlyidentified_manifolds(
+    ::FixedRankMatrices{m,n,k},
+    ::FixedRankMatrices{m,n,k_ref},
+) where {m,n,k,k_ref}
+    return min(min(m, n) - k, min(m, n) - k_ref)
+end
+
+
+function get_proportion_identifiedstructure(Ms::AbstractVector, M_ref)
+    return [nb_correctlyidentified_manifolds(M, M_ref) for M in Ms] ./ nb_identified_manifolds(M_ref)
+end
+
+function get_identification_ind(Ms, M_x0)
+    ind_id = length(Ms)
+    while Ms[ind_id] == M_x0
+        ind_id -= 1
+    end
+    has_identified = ind_id != length(Ms)
+    return has_identified, ind_id + 1
+end
+
+function get_finalmanifold_ind(Ms)
+    ind_id = length(Ms)
+    @show length(Ms)
+    while Ms[ind_id] == Ms[end]
+        ind_id -= 1
+    end
+    @show ind_id
+    return ind_id + 1
+end

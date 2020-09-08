@@ -10,15 +10,16 @@ function main()
     #
     ## Problem setup
     #
-    θ = π*(0.5 + 0.2)
+    θ = π * (0.5 + 0.2)
     x0 = 3 .* [cos(θ), sin(θ)]
 
     p_norm = 1.3
 
-    xopt = [cos(θ), sin(θ)]; xopt /= norm(xopt, p_norm)
-    objopt = 0.
+    xopt = [cos(θ), sin(θ)]
+    xopt /= norm(xopt, p_norm)
+    objopt = 0.0
 
-    A = Matrix{Float64}([1. 1.; 0. 1.])
+    A = Matrix{Float64}([1.0 1.0; 0.0 1.0])
     y = A * xopt
     λ = 1.0
 
@@ -34,33 +35,75 @@ function main()
     iterations_limit = 150
 
 
-    optimizer = ProximalGradient(backtracking=false)
+    optimizer = ProximalGradient(backtracking = false)
     init_state = ProximalGradientState(optimizer, x0, pb.regularizer; γ = γuser)
-    to_pg, tr_pg = optimize!(pb, optimizer, x0; state=init_state, optimstate_extensions = optimstate_extens, iterations_limit=iterations_limit)
+    to_pg, tr_pg = optimize!(
+        pb,
+        optimizer,
+        x0;
+        state = init_state,
+        optimstate_extensions = optimstate_extens,
+        iterations_limit = iterations_limit,
+    )
     optimdata[optimizer] = tr_pg
 
-    p = 1/20
-    apg_extrapolation = AcceleratedProxGrad(p=p,q=(p^2 + (2-p)^2)/2,r=4.0)
-    optimizer = ProximalGradient(backtracking=false, extrapolation = apg_extrapolation)
+    p = 1 / 20
+    apg_extrapolation = AcceleratedProxGrad(p = p, q = (p^2 + (2 - p)^2) / 2, r = 4.0)
+    optimizer = ProximalGradient(backtracking = false, extrapolation = apg_extrapolation)
 
     init_state = ProximalGradientState(optimizer, x0, pb.regularizer, γ = γuser)
-    to_apg, tr_apg = optimize!(pb, optimizer, x0; state=init_state, optimstate_extensions = optimstate_extens, iterations_limit=iterations_limit)
+    to_apg, tr_apg = optimize!(
+        pb,
+        optimizer,
+        x0;
+        state = init_state,
+        optimstate_extensions = optimstate_extens,
+        iterations_limit = iterations_limit,
+    )
     optimdata[optimizer] = tr_apg
 
 
-    optimizer = ProximalGradient(backtracking=false, extrapolation = Test1ProxGrad(apg_extrapolation))
+    optimizer = ProximalGradient(
+        backtracking = false,
+        extrapolation = Test1ProxGrad(apg_extrapolation),
+    )
     init_state = ProximalGradientState(optimizer, x0, pb.regularizer, γ = γuser)
-    to_t1, tr_t1 = optimize!(pb, optimizer, x0; state=init_state, optimstate_extensions = optimstate_extens, iterations_limit=iterations_limit)
+    to_t1, tr_t1 = optimize!(
+        pb,
+        optimizer,
+        x0;
+        state = init_state,
+        optimstate_extensions = optimstate_extens,
+        iterations_limit = iterations_limit,
+    )
     optimdata[optimizer] = tr_t1
 
-    optimizer = ProximalGradient(backtracking=false, extrapolation = Test2ProxGrad(apg_extrapolation))
+    optimizer = ProximalGradient(
+        backtracking = false,
+        extrapolation = Test2ProxGrad(apg_extrapolation),
+    )
     init_state = ProximalGradientState(optimizer, x0, pb.regularizer, γ = γuser)
-    to_t2, tr_t2 = optimize!(pb, optimizer, x0; state=init_state, optimstate_extensions = optimstate_extens, iterations_limit=iterations_limit)
+    to_t2, tr_t2 = optimize!(
+        pb,
+        optimizer,
+        x0;
+        state = init_state,
+        optimstate_extensions = optimstate_extens,
+        iterations_limit = iterations_limit,
+    )
     optimdata[optimizer] = tr_t2
 
-    optimizer = ProximalGradient(backtracking=false, extrapolation = MFISTA(apg_extrapolation))
+    optimizer =
+        ProximalGradient(backtracking = false, extrapolation = MFISTA(apg_extrapolation))
     init_state = ProximalGradientState(optimizer, x0, pb.regularizer, γ = γuser)
-    to_MAPG, tr_MAPG = optimize!(pb, optimizer, x0; state=init_state, optimstate_extensions = optimstate_extens, iterations_limit=iterations_limit)
+    to_MAPG, tr_MAPG = optimize!(
+        pb,
+        optimizer,
+        x0;
+        state = init_state,
+        optimstate_extensions = optimstate_extens,
+        iterations_limit = iterations_limit,
+    )
     optimdata[optimizer] = tr_MAPG
 
 
