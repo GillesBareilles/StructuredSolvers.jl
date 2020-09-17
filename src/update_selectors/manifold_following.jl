@@ -18,4 +18,4 @@ function select_update!(::ManifoldFollowingSelector, state, optimizer, pb)
     return
 end
 
-Base.summary(::ManifoldFollowingSelector) = "ManAdaptive"
+Base.summary(::ManifoldFollowingSelector) = "Adaptive"

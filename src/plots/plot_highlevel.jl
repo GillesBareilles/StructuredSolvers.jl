@@ -8,6 +8,8 @@ for computing suboptimality.
 function plot_fvals_iteration(
     optimizer_to_trace::AbstractDict{Optimizer, Any};
     F_opt=nothing,
+    state_absciss = s->s.it,
+    xlabel="iterations"
 )
     if isnothing(F_opt)
         F_opt=+Inf
@@ -18,7 +20,7 @@ function plot_fvals_iteration(
         end
     end
 
-    get_abscisses(states) = [state.it for state in states]
+    get_abscisses(states) = [state_absciss(state) for state in states]
     function get_ordinates(otpimizer, states)
         return [state.f_x + state.g_x - F_opt for state in states]
     end
@@ -27,11 +29,18 @@ function plot_fvals_iteration(
         optimizer_to_trace::AbstractDict{Optimizer, Any},
         get_abscisses,
         get_ordinates,
-        xlabel = "iterations",
+        xlabel = xlabel,
         ylabel = L"$F(x_k)-F^\star$",
         ymode = "log",
         nmarks = 15,
     )
+end
+
+function plot_fvals_time(
+    optimizer_to_trace::AbstractDict{Optimizer, Any};
+    F_opt=nothing
+)
+    return plot_fvals_iteration(optimizer_to_trace, F_opt=F_opt, state_absciss = s->s.time, xlabel="time (s)")
 end
 
 
@@ -44,6 +53,8 @@ for computing suboptimality.
 function plot_step_iteration(
     optimizer_to_trace::AbstractDict{Optimizer, Any};
     F_opt=nothing,
+    state_absciss = s->s.it,
+    xlabel = "iterations"
 )
     if isnothing(F_opt)
         F_opt=+Inf
@@ -54,7 +65,7 @@ function plot_step_iteration(
         end
     end
 
-    get_abscisses(states) = [state.it for state in states]
+    get_abscisses(states) = [state_absciss(state) for state in states]
     function get_ordinates(otpimizer, states)
         return [state.norm_step for state in states]
     end
@@ -63,13 +74,18 @@ function plot_step_iteration(
         optimizer_to_trace::AbstractDict{Optimizer, Any},
         get_abscisses,
         get_ordinates,
-        xlabel = "iterations",
+        xlabel = xlabel,
         ylabel = L"$\|x_{k-1}-x_k\|$",
         ymode = "log",
         nmarks = 15,
     )
 end
-
+function plot_step_time(
+    optimizer_to_trace::AbstractDict{Optimizer, Any};
+    F_opt=nothing,
+)
+    return plot_step_iteration(optimizer_to_trace, F_opt=F_opt, state_absciss = s->s.time, xlabel="time (s)")
+end
 
 """
     plot_structure_iteration(optimizer_to_trace, M_opt)
@@ -78,12 +94,14 @@ Plot iterate manifold dimension as a function of iterations.
 """
 function plot_structure_iteration(
     optimizer_to_trace::AbstractDict{Optimizer, Any},
-    M_opt
+    M_opt;
+    state_absciss = s->s.it,
+    xlabel="iterations"
 )
     M_opt_dim = manifold_dimension(M_opt)
     embedding_dim = embedding_dimension(M_opt)
 
-    get_abscisses(states) = [state.it for state in states]
+    get_abscisses(states) = [state_absciss(state) for state in states]
     function get_ordinates(optimizer, states)
         # return [100 * (embedding_dim-manifold_dimension(state.additionalinfo.M)) / (embedding_dim - M_opt_dim) for state in states]
         return [manifold_dimension(state.additionalinfo.M) for state in states]
@@ -93,12 +111,22 @@ function plot_structure_iteration(
         optimizer_to_trace::AbstractDict{Optimizer, Any},
         get_abscisses,
         get_ordinates,
-        xlabel = "iterations",
+        xlabel = xlabel,
         ylabel = latexstring("dim(\$M_k\$)"),
         ymode = "normal",
         nmarks = 15,
     )
 end
+function plot_structure_time(
+    optimizer_to_trace::AbstractDict{Optimizer, Any},
+    M_opt;
+)
+    return plot_structure_iteration(optimizer_to_trace, M_opt, state_absciss = s->s.time, xlabel="time (s)")
+end
+
+
+
+
 
 
 """

@@ -18,4 +18,4 @@ function select_update!(::AlternatingUpdateSelector, state, optimizer, pb)
     return
 end
 
-Base.summary(::AlternatingUpdateSelector) = "AltCompoMan"
+Base.summary(::AlternatingUpdateSelector) = "Alternate"

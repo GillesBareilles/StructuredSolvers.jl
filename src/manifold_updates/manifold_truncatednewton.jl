@@ -29,7 +29,9 @@ end
 
 initial_state(::ManifoldTruncatedNewton, x, reg) = ManifoldTruncatedNewtonState()
 
-str_updatelog(::ManifoldTruncatedNewton, t::ManifoldTruncatedNewtonState) = @sprintf "|∇(f+g)ₘ|: %.2e   CG: nit:%3i  νₖ:%.1e ε:%.1e residual:%.1e     |dᴺ|:%.3e   cos(θₖ):%.1e  λ(x):%.1e   ls: nit:%2i" t.norm_∇fgₘ t.CG_niter t.νₖ t.CG_ε t.CG_residual t.norm_dᴺ t.cosθ t.λ_x t.ls_niter
+function str_updatelog(::ManifoldTruncatedNewton, t::ManifoldTruncatedNewtonState)
+    @sprintf "|∇(f+g)ₘ|: %.2e   CG: nit:%3i  νₖ:%.1e ε:%.1e residual:%.1e     |dᴺ|:%.3e   cos(θₖ):%.1e  λ(x):%.1e   ls: nit:%2i" t.norm_∇fgₘ t.CG_niter t.νₖ t.CG_ε t.CG_residual t.norm_dᴺ t.cosθ t.λ_x t.ls_niter
+end
 
 function update_iterate!(state::PartlySmoothOptimizerState, pb, o::ManifoldTruncatedNewton)
 

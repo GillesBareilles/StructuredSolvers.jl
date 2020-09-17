@@ -17,12 +17,12 @@ function solve_tCG(M, x, gradfₖ, hessf_x_h; ν=1e-3, ϵ_residual = 1e-13, maxi
 
     j = 0
 
-    (printlev>0) && @printf "\nj     norm(rⱼ)             ⟨vⱼ, hessf(x)[vⱼ]⟩   ν * norm(vⱼ)^2\n"
+    (printlev>0) && @printf "\nj     norm(rⱼ)             norm(vⱼ)             ⟨vⱼ, hessf(x)[vⱼ]⟩   ν * norm(vⱼ)^2\n"
     while true
         # current residual, conjugated direction
         rⱼ = hessf_x_h(dₖ) + gradfₖ
         if safe_projection
-            rⱼ = project(M, x, x+rⱼ)
+            rⱼ = project(M, x, rⱼ)
         end
 
         vⱼ = - rⱼ
@@ -32,7 +32,7 @@ function solve_tCG(M, x, gradfₖ, hessf_x_h; ν=1e-3, ϵ_residual = 1e-13, maxi
         end
 
         hessf_x_vⱼ = hessf_x_h(vⱼ)
-        (printlev>0) && @printf "%5i %.10e    % .10e     %.10e\n" j norm(rⱼ) inner(M, x, vⱼ, hessf_x_vⱼ) ν * norm(vⱼ)^2
+        (printlev>0) && @printf "%5i %.10e    %.10e    % .10e     %.10e\n" j norm(rⱼ) norm(vⱼ) inner(M, x, vⱼ, hessf_x_vⱼ) ν * norm(vⱼ)^2
         if norm(rⱼ) < ϵ_residual || inner(M, x, vⱼ, hessf_x_vⱼ) < ν * norm(vⱼ)^2 || j > maxiter
             ## Satisfying point obtained
             if j == 0
