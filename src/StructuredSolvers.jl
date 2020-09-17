@@ -68,6 +68,7 @@ export AcceleratedProxGrad, AcceleratedProxGradState
 export Test1ProxGrad, Test1ProxGradState
 export Test2ProxGrad, Test2ProxGradState
 export MFISTA, MFISTAState
+export RestartedAPG, RestartedAPGState
 
 export OptimizationState, OptimizationTrace
 export Optimizer

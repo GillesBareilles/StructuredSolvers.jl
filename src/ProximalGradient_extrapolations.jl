@@ -225,3 +225,52 @@ function extrapolation!(o::MFISTA, pgstate, extrastate, pb)
 end
 
 Base.summary(::MFISTA) = "MFISTA"
+
+
+#
+## Restarted Accelerated proximal gradient
+#
+## Inertial parameters from FISTA, but with possibilities suggested by Jingwei Liang...
+@with_kw struct RestartedAPG <: ProxGradExtrapolation
+    acceleration::AcceleratedProxGrad = AcceleratedProxGrad()
+    period::Int64 = 15
+end
+mutable struct RestartedAPGState{Tx} <: ProxGradExtrapolation
+    acceleration_state::AcceleratedProxGradState{Tx}
+    nbAPGiterations::Int64
+end
+
+Base.summary(::RestartedAPG) = " Restarted A."
+
+function extrapolation_state(o::RestartedAPG, x, g::Regularizer)
+    return RestartedAPGState(extrapolation_state(o.acceleration, x, g), 0)
+end
+
+function extrapolation!(rapg::RestartedAPG, pgstate, extrastate, pb)
+    @unpack p, q, r = rapg.acceleration
+    accel_state = extrastate.acceleration_state
+
+    ## Compute proximal gradient iterate
+    pgstate.temp .= pgstate.x .- pgstate.γ .* pgstate.∇f_x
+    M = prox_αg!(pb, accel_state.y, pgstate.temp, pgstate.γ)
+
+    t_next = (p + sqrt(q + r * accel_state.t^2)) / 2
+
+    pgstate.x .=
+        accel_state.y .+
+        (accel_state.t - 1) / t_next * (accel_state.y .- accel_state.y_old)
+
+    pgstate.M = M
+
+    accel_state.t = t_next
+    accel_state.y_old .= accel_state.y
+
+    extrastate.nbAPGiterations += 1
+    if extrastate.nbAPGiterations == rapg.period
+        extrastate.nbAPGiterations = 0
+        extrastate.acceleration_state.t = 1
+        extrastate.acceleration_state.y .= pgstate.x
+        extrastate.acceleration_state.y_old .= pgstate.x
+    end
+    return
+end

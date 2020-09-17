@@ -19,6 +19,7 @@ mutable struct ProximalGradientState{Tx,Te} <: OptimizerState
     x::Tx
     x_old::Tx
     M::Manifold
+    M_old::Manifold
     f_x::Float64
     g_x::Float64
     ∇f_x::Tx
@@ -37,6 +38,7 @@ function ProximalGradientState(
         0,
         copy(x),
         copy(x),
+        wholespace_manifold(g, x),
         wholespace_manifold(g, x),
         0.0,
         0.0,
@@ -67,6 +69,7 @@ end
 initial_state(o::ProximalGradient, x, reg) = ProximalGradientState(o, x, reg)
 
 function update_iterate!(state::ProximalGradientState, pb, optimizer::ProximalGradient)
+    state.M_old = state.M
 
     ## Run backtracking line search to update estimate of gradient Lipschitz constant
     if optimizer.backtracking
@@ -93,12 +96,16 @@ function display_logs(
     optimstate_extensions,
     tracing,
 )
-    tracing &&
-        @printf "%4i  %.16e  %-.3e  %-.3e  %.3e  %-.3e  %-12s\n" iteration state.f_x +
-                                                                           state.g_x state.f_x state.g_x state.γ norm(
-            state.x - state.x_old,
-        ) state.M
+    if tracing
+        style = state.M==state.M_old ? "" : "4"
+        @printf "%4i  %.16e  %-.3e  %-.3e  %.3e  %-.3e" iteration state.f_x + state.g_x state.f_x state.g_x state.γ norm(state.x - state.x_old)
 
+        if state.M == state.M_old
+            @printf "  \033[m%s\033[0m\n" state.M
+        else
+            @printf "  \033[4m%s\033[0m\n" state.M
+        end
+    end
 
     ## TODO: This section of code is generic, should be factored. Plus, can the many allocs be avoided when zipping and building temp arrays?
     keys = []
