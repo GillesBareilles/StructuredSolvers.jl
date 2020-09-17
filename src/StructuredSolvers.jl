@@ -59,8 +59,10 @@ using PGFPlotsX
 using LaTeXStrings
 using Contour
 
-include("plot_trace.jl")
+include("plots/plot_trace.jl")
+include("plots/plot_highlevel.jl")
 
+include("utils_numexps.jl")
 
 export ProximalGradient, ProximalGradientState
 export VanillaProxGrad, VanillaProxGradState

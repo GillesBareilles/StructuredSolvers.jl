@@ -120,6 +120,7 @@ function display_logs(
         time = time,
         f_x = state.f_x,
         g_x = state.g_x,
+        norm_step = norm(state.x-state.x_old),
         additionalinfo = (;
             zip(
                 [osextension.key for osextension in optimstate_extensions],

@@ -50,8 +50,8 @@ function plot_curves(
     ntraces = length(optimizer_to_trace)
     COLORS = (ntraces <= 7 ? COLORS_7 : COLORS_10)
 
-    maxlogedvalues = maximum(length(trace) for trace in values(optimizer_to_trace))
-    markrepeat = floor(maxlogedvalues / nmarks)
+    maxloggedvalues = maximum(length(trace) for trace in values(optimizer_to_trace))
+    markrepeat = floor(maxloggedvalues / nmarks)
 
     algoid = 1
     for (optimizer, trace) in optimizer_to_trace
@@ -64,7 +64,7 @@ function plot_curves(
                     algoid,
                     markrepeat,
                 )...),
-                Coordinates(get_abscisses(trace), get_ordinates(trace)),
+                Coordinates(get_abscisses(trace), get_ordinates(optimizer, trace)),
             ),
         )
         includelegend && push!(plotdata, LegendEntry(get_legendname(optimizer)))
@@ -86,43 +86,13 @@ function plot_curves(
     )
 end
 
-"""
-    plot_fvals_iteration(optimizer_to_trace; Fmin)
-
-Plot suboptimality as a function of time. The baseline functional value should be supplied
-for computing suboptimality.
-"""
-function plot_fvals_iteration(
-    optimizer_to_trace::AbstractDict{Optimizer, Any};
-    Fmin=nothing,
-)
-    if isnothing(Fmin)
-        Fmin=+Inf
-        for (optimizer, trace) in optimizer_to_trace
-            for state in trace
-                Fmin = min(Fmin, state.f_x+state.g_x)
-            end
-        end
-    end
-
-    get_abscisses(states) = [state.it for state in states]
-    function get_ordinates(states)
-        return [state.f_x + state.g_x - Fmin for state in states]
-    end
-
-    return plot_curves(
-        optimizer_to_trace::AbstractDict{Optimizer, Any},
-        get_abscisses,
-        get_ordinates,
-        xlabel = "iterations",
-        ylabel = L"$F(x_k)-F^\star$",
-        ymode = "log",
-        nmarks = 15,
-    )
-end
 
 
 
+
+#
+## Helper functions.
+#
 function get_iteratesplot_params(optimizer, COLORS, algoid)
     return Dict{Any,Any}(
         "mark" => MARKERS[mod(algoid, 7) + 1],
@@ -131,82 +101,6 @@ function get_iteratesplot_params(optimizer, COLORS, algoid)
         # "mark options" => "draw=black",
     )
 end
-
-
-"""
-    plot_iterates(pb, optimizer_to_trace)
-
-Plot iterates for 2d problems.
-"""
-function plot_iterates(pb, optimizer_to_trace::AbstractDict{Optimizer, Any})
-
-    ## TODOs: - automatic / paramters for xmin, xmax, ymin, ymax.
-    ## TODOs: - Set colors as in AI paper
-    ntraces = length(optimizer_to_trace)
-    COLORS = (ntraces <= 7 ? COLORS_7 : COLORS_10)
-
-    xmin, xmax = -1, 4
-    ymin, ymax = -1, 2
-
-    plotdata = []
-
-    ## Plot contour
-    add_contour!(plotdata, pb, xmin, xmax, ymin, ymax)
-
-    ## Plot algorithms iterates
-    algoid = 1
-    for (optimizer, trace) in optimizer_to_trace
-        coords = [(state.additionalinfo.x[1], state.additionalinfo.x[2]) for state in trace]
-
-        push!(
-            plotdata,
-            PlotInc(
-                PGFPlotsX.Options(get_iteratesplot_params(optimizer, COLORS, algoid)...),
-                Coordinates(coords),
-            ),
-        )
-        push!(plotdata, LegendEntry(get_legendname(optimizer)))
-
-        algoid += 1
-    end
-
-
-
-    # ## Plot optimal point
-    # add_point!(ps, xopt)
-
-
-    ## Plot manifolds
-    coords = [(xmin, 0), (xmax, 0)]
-    add_manifold!(plotdata, coords)
-    coords = [(0, ymin), (0, ymax)]
-    add_manifold!(plotdata, coords)
-
-    return @pgf Axis(
-        {
-            contour_prepared,
-            # view = "{0}{90}",
-            # height = "12cm",
-            # width = "12cm",
-            xmin = xmin,
-            xmax = xmax,
-            ymin = ymin,
-            ymax = ymax,
-            legend_pos = "outer north east",
-            legend_cell_align = "left",
-            legend_style = "font=\\footnotesize",
-            # title = "Problem $(pb.name) -- Iterates postion",
-        },
-        plotdata...,
-    )
-
-    return fig = pgf_build_iteratesfig(ps, xmin, xmax, ymin, ymax)
-end
-
-
-#
-## Helper functions.
-#
 
 
 function add_contour!(plotdata, pb, xmin, xmax, ymin, ymax)

@@ -16,6 +16,7 @@ mutable struct PartlySmoothOptimizerState{Tx} <: OptimizerState
     x::Tx
     x_old::Tx
     M::Manifold
+    M_old::Manifold
     f_x::Float64
     g_x::Float64
     ∇f_x::Tx
@@ -33,6 +34,7 @@ function PartlySmoothOptimizerState(
         -1,
         copy(x),
         copy(x),
+        wholespace_manifold(g, x),
         wholespace_manifold(g, x),
         0.0,
         0.0,
@@ -73,6 +75,7 @@ function initial_state(o::PartlySmoothOptimizer, x, reg)
 end
 
 function update_iterate!(state::PartlySmoothOptimizerState, pb, optimizer::PartlySmoothOptimizer)
+    state.M = state.M_old
     select_update!(optimizer.update_selector, state, optimizer, pb)
 
     update_iterate!(state, pb, state.selected_update)
@@ -82,7 +85,7 @@ end
 
 
 function display_logs_header(o::PartlySmoothOptimizer)
-    print("it.   F(x)                    f(x)       g(x)       step       Manifold      Update\n")
+    print("it.   F(x)                    f(x)       g(x)       step         Manifold      Update\n")
     return
 end
 
@@ -100,7 +103,15 @@ function display_logs(
 )
     if tracing
         F_x = state.f_x + state.g_x
-        @printf "%4i  %.16e  %-.3e  %-.3e  %-.3e  %-12s  %-10s\t" iteration F_x state.f_x state.g_x norm(state.x - state.x_old) state.M summary(state.selected_update)
+        changedmanifold = state.M_old==state.M ? " " : "*"
+        @printf "%4i  %.16e  %-.3e  %-.3e  %-.3e  %s%-12s  %-10s\t" iteration F_x state.f_x state.g_x norm(state.x - state.x_old) changedmanifold state.M summary(state.selected_update)
+
+        # if state.M == state.M_old
+        #     @printf "  \033[m%s\033[0m\n" state.M
+        # else
+        #     @printf "  \033[4m%s\033[0m\n" state.M
+        # end
+
         if !isnothing(state.selected_update)
             printstyled(str_updatelog(state.selected_update, state.update_to_updatestate[state.selected_update]))
         end
@@ -120,6 +131,7 @@ function display_logs(
         time = time,
         f_x = state.f_x,
         g_x = state.g_x,
+        norm_step = norm(state.x-state.x_old),
         additionalinfo = (;
             zip(
                 [osextension.key for osextension in optimstate_extensions],

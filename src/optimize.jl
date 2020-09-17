@@ -28,6 +28,7 @@ function optimize!(
     optimstate_extensions = [],
     iterations_limit = 30,
     show_trace = true,
+    trace_length = 20,
 ) where {O<:Optimizer,S<:OptimizerState}
 
     ## TODO: factor options
@@ -67,6 +68,9 @@ function optimize!(
 
 
         _time = time()
+
+        ## Decide if tracing this iteration
+        tracing = show_trace && (mod(iteration, ceil(iterations_limit / trace_length)) == 0 || iteration==iterations_limit)
 
         optimizationstate = display_logs(
             state,

@@ -4,7 +4,7 @@
     f_x::Float64
     g_x::Float64
     norm_∇f_x::Float64 = -1.0
-    norm_proxstep::Float64 = -1.0
+    norm_step::Float64 = -1.0
     nb_calls_f::Int64 = -1
     nb_calls_g::Int64 = -1
     nb_calls_∇f::Int64 = -1
