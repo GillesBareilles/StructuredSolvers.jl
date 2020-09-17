@@ -62,6 +62,10 @@ function optimize!(
     while !converged && !stopped && iteration < iterations_limit
         iteration += 1
 
+        state.M_old = state.M
+        state.x_old .= state.x
+
+
         @timeit to "iterate update" update_iterate!(state, pb, optimizer)
 
         @timeit to "oracles calls" update_fg∇f!(state, pb)

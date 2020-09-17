@@ -20,8 +20,6 @@ function update_iterate!(state::PartlySmoothOptimizerState, pb, m::WholespacePro
         ncalls_f, γ = backtrack_f_lipschitzgradient!(state, pb, γ)
     end
 
-    state.x_old .= state.x
-
     state.temp .= state.x .- γ .* state.∇f_x
     M = prox_αg!(pb, state.x, state.temp, γ)
     state.M = M

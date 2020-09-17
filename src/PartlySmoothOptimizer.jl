@@ -103,14 +103,14 @@ function display_logs(
 )
     if tracing
         F_x = state.f_x + state.g_x
-        changedmanifold = state.M_old==state.M ? " " : "*"
-        @printf "%4i  %.16e  %-.3e  %-.3e  %-.3e  %s%-12s  %-10s\t" iteration F_x state.f_x state.g_x norm(state.x - state.x_old) changedmanifold state.M summary(state.selected_update)
+        @printf "%4i  %.16e  %-.3e  %-.3e  %-.3e  " iteration F_x state.f_x state.g_x norm(state.x - state.x_old)
+        if state.M == state.M_old
+            @printf "  %12s" state.M
+        else
 
-        # if state.M == state.M_old
-        #     @printf "  \033[m%s\033[0m\n" state.M
-        # else
-        #     @printf "  \033[4m%s\033[0m\n" state.M
-        # end
+            @printf "%s\033[4m%s\033[0m" repeat(" ", 2+12-length(string(state.M))) state.M
+        end
+        @printf "  %-10s\t" summary(state.selected_update)
 
         if !isnothing(state.selected_update)
             printstyled(str_updatelog(state.selected_update, state.update_to_updatestate[state.selected_update]))

@@ -69,14 +69,12 @@ end
 initial_state(o::ProximalGradient, x, reg) = ProximalGradientState(o, x, reg)
 
 function update_iterate!(state::ProximalGradientState, pb, optimizer::ProximalGradient)
-    state.M_old = state.M
 
     ## Run backtracking line search to update estimate of gradient Lipschitz constant
     if optimizer.backtracking
         ncalls_f, state.γ = backtrack_f_lipschitzgradient!(state, pb, state.γ)
     end
 
-    state.x_old .= state.x
     extrapolation!(optimizer.extrapolation, state, state.extrapolation_state, pb)
     return
 end

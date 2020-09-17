@@ -34,7 +34,6 @@ str_updatelog(::ManifoldTruncatedNewton, t::ManifoldTruncatedNewtonState) = @spr
 function update_iterate!(state::PartlySmoothOptimizerState, pb, o::ManifoldTruncatedNewton)
 
     man_truncnewton_state = state.update_to_updatestate[o]
-    state.x_old .= state.x
     grad_fgₖ = @view state.temp[:]     # makes code more readable
 
     ncalls_f = 0
