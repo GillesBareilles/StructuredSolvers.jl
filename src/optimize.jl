@@ -26,21 +26,18 @@ function optimize!(
     initial_x;
     state::S = initial_state(optimizer, initial_x, pb.regularizer),
     optimstate_extensions = [],
-    iterations_limit = 30,
-    show_trace = true,
-    trace_length = 20,
+    optparams = OptimizerParams()
 ) where {O<:Optimizer,S<:OptimizerState}
 
-    ## TODO: factor options
-    # show_trace = true
-    # iterations_limit = 20
-    time_limit = 30
+    ## Collecting parameters
+    @unpack iterations_limit, time_limit = optparams
+    @unpack show_trace, trace_length = optparams
     tracing = show_trace
-    stopped = false
 
     t0 = time()
     iteration = 0
     converged = false
+    stopped = false
 
 
     update_fg∇f!(state, pb)
@@ -86,6 +83,15 @@ function optimize!(
             tracing,
         )
         push!(tr, optimizationstate)
+
+        converged = false
+        # for cvchecker in optparams.cvcheckers
+        #     converged = converged || has_converged(cvchecker, pb, optimizer, state)
+        #     if converged
+        #         @info "Exiting with convergence criterion"
+        #         break
+        #     end
+        # end
 
         # converged = (norm(state.x - state.x_old) < 1e-7)
         # converged = (state.f_x + state.g_x < 1e-12)

@@ -21,12 +21,27 @@ abstract type AmbiantOptimizer <: Optimizer end
 abstract type OptimizerState end
 abstract type OptimizerTrace end
 
+abstract type ConvergenceChecker end
+
+
+export OptimizerParams
 
 include("trace.jl")
+include("optimizer_params.jl")
 include("optimize.jl")
+
+
+
+#
+### Proximal gradient based algorithms
+#
 include("ProximalGradient.jl")
 include("ProximalGradient_extrapolations.jl")
 
+
+#
+### ProxGrad / Manifold based algorithms
+#
 include("PartlySmoothOptimizer.jl")
 export PartlySmoothOptimizer
 
@@ -43,7 +58,8 @@ include("wholespace_updates/proximal_gradient.jl")
 export WholespaceProximalGradient
 
 # Manifold updates
-include("linesearches.jl")
+abstract type ManifoldLinesearch end
+include("linesearches/armijogoldstein.jl")
 include("manifold_updates/tangent_ConjugatedGradient.jl")
 
 include("manifold_updates/manifold_identity.jl")
@@ -63,6 +79,9 @@ include("plots/plot_trace.jl")
 include("plots/plot_highlevel.jl")
 
 include("utils_numexps.jl")
+
+include("convergence.jl")
+
 
 export ProximalGradient, ProximalGradientState
 export VanillaProxGrad, VanillaProxGradState

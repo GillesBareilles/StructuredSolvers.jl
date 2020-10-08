@@ -54,9 +54,9 @@ Base.summary(o::PartlySmoothOptimizer) = string(
 function print_header(pso::PartlySmoothOptimizer)
     println("---------------------")
     println("--- Partly Smooth Optimizer")
-    println(" - update selection    ", pso.update_selector)
-    println(" - wholespace update   ", pso.wholespace_update)
-    println(" - manifold update     ", pso.manifold_update)
+    println(" - update selection    ", summary(pso.update_selector))
+    println(" - wholespace update   ", summary(pso.wholespace_update))
+    println(" - manifold update     ", summary(pso.manifold_update))
 end
 
 function update_fg∇f!(state::PartlySmoothOptimizerState, pb)
@@ -102,19 +102,29 @@ function display_logs(
     tracing,
 )
     if tracing
+        ## Proximal gradient steps are displayed in gray
+        iswholeupdate = isa(state.selected_update,WholespaceUpdate)
+        linestyle = iswholeupdate ? "90" : "0"
+        print("\033[$(linestyle)m")
+
         F_x = state.f_x + state.g_x
         @printf "%4i  %.16e  %-.3e  %-.3e  %-.3e  " iteration F_x state.f_x state.g_x norm(state.x - state.x_old)
-        if state.M == state.M_old
-            @printf "  %12s" state.M
-        else
 
-            @printf "%s\033[4m%s\033[0m" repeat(" ", 2+12-length(string(state.M))) state.M
+        ## underlined manifold if state changed
+        manstyle = (state.M == state.M_old) ? linestyle : "4"
+        if length(string(state.M)) <= 14
+            print(repeat(" ", 2+12-length(string(state.M))), "\033[$(manstyle)m",state.M, "\033[0m\033[$(linestyle)m")
+        else
+            print("\033[$(manstyle)m",state.M, "\033[0m\033[$(linestyle)m")
         end
+
         @printf "  %-10s\t" summary(state.selected_update)
 
         if !isnothing(state.selected_update)
-            printstyled(str_updatelog(state.selected_update, state.update_to_updatestate[state.selected_update]))
+            print(str_updatelog(state.selected_update, state.update_to_updatestate[state.selected_update]))
         end
+
+        iswholeupdate && print("\033[0m")
         println()
     end
 

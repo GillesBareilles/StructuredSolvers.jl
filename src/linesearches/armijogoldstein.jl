@@ -1,5 +1,3 @@
-abstract type ManifoldLinesearch end
-
 @with_kw struct ArmijoGoldstein <: ManifoldLinesearch
     ω₁::Float64 = 1e-4
     ω₂::Float64 = 0.99
@@ -31,14 +29,14 @@ function linesearch(ls::ArmijoGoldstein, pb::CompositeProblem, M::Manifold, x, �
         if F_x + ω₁*α*dh_0 < F_cand
             α_up = α
 
-            α = (α_up + α_low)/2
+            α = α_up*0.1 + α_low*0.9    # NOTE : Might do interpolation here?
         elseif F_cand < F_x + ω₂*α*dh_0
             α_low = α
 
             if isinf(α_up)
                 α = τₑ * α_low
             else
-                α = (α_up + α_low)/2
+                α = α_up*0.9 + α_low*0.1
             end
         else
             validpoint = true

@@ -8,7 +8,7 @@ function select_update!(::ManifoldFollowingSelector, state, optimizer, pb)
     γ = state.update_to_updatestate[optimizer.wholespace_update].γ
 
     state.temp .= state.x .- γ .* state.∇f_x
-    M = prox_αg(pb, state.x, γ)[2]
+    M = prox_αg(pb, state.temp, γ)[2]
 
     state.selected_update = optimizer.wholespace_update
     if state.M == M && manifold_dimension(M) > 0

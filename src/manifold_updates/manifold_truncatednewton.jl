@@ -30,13 +30,24 @@ end
 initial_state(::ManifoldTruncatedNewton, x, reg) = ManifoldTruncatedNewtonState()
 
 function str_updatelog(::ManifoldTruncatedNewton, t::ManifoldTruncatedNewtonState)
-    @sprintf "|∇(f+g)ₘ|: %.2e   CG: nit:%3i  νₖ:%.1e ε:%.1e residual:%.1e     |dᴺ|:%.3e   cos(θₖ):%.1e  λ(x):%.1e   ls: nit:%2i" t.norm_∇fgₘ t.CG_niter t.νₖ t.CG_ε t.CG_residual t.norm_dᴺ t.cosθ t.λ_x t.ls_niter
+    resstyle = (t.CG_residual <= t.CG_ε) ? "0" : "4;1"
+    return string(
+        (@sprintf "|∇(f+g)ₘ|: %.2e   CG: nit:%3i  νₖ:%.1e ε:%.1e residual:" t.norm_∇fgₘ t.CG_niter t.νₖ t.CG_ε),
+        "\033[$(resstyle)m",
+        (@sprintf "%.1e" t.CG_residual),
+        "\033[0m",
+        (@sprintf "     |dᴺ|:%.3e   cos(θₖ):%.1e  λ(x):%.1e   ls-nit%2i" t.norm_dᴺ t.cosθ t.λ_x t.ls_niter)
+    )
 end
 
-function update_iterate!(state::PartlySmoothOptimizerState, pb, o::ManifoldTruncatedNewton)
+function update_iterate!(state::PartlySmoothOptimizerState{Tx}, pb, o::ManifoldTruncatedNewton) where Tx
+    @assert is_manifold_point(state.M, state.x)
 
     man_truncnewton_state = state.update_to_updatestate[o]
     grad_fgₖ = @view state.temp[:]     # makes code more readable
+    if (Tx <: Array) && (Tx.parameters[2] == 2)
+        grad_fgₖ = @view state.temp[:, :]
+    end
 
     ncalls_f = 0
     ncalls_∇f = 0
