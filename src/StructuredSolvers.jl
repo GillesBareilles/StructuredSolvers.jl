@@ -10,7 +10,9 @@ using Printf
 using TimerOutputs
 using Parameters
 
-import Base: show, summary
+import Base: show, summary, copy
+import CompositeProblems: firstorder_optimality_tangnorm
+import StructuredProximalOperators: embed
 
 const to = TimerOutput()
 
@@ -30,6 +32,7 @@ include("trace.jl")
 include("optimizer_params.jl")
 include("optimize.jl")
 
+include("point_ambiantmanifold.jl")
 
 
 #
@@ -81,6 +84,10 @@ include("plots/plot_highlevel.jl")
 include("utils_numexps.jl")
 
 include("convergence.jl")
+
+function firstorder_optimality_tangnorm(pb::CompositeProblem, x::Point, M, ∇f_x)
+    return firstorder_optimality_tangnorm(pb, get_repr(x), M, ∇f_x)
+end
 
 
 export ProximalGradient, ProximalGradientState

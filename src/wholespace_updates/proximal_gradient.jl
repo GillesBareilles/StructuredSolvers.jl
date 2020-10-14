@@ -16,12 +16,19 @@ str_updatelog(o::WholespaceProximalGradient, t::WholespaceProximalGradientState)
 
 function update_iterate!(state::PartlySmoothOptimizerState, pb, m::WholespaceProximalGradient)
     γ = state.update_to_updatestate[m].γ
+    x = state.x.man_repr
+
+    @assert state.x.repr == ambiant_repr
+
     if m.backtracking
         ncalls_f, γ = backtrack_f_lipschitzgradient!(state, pb, γ)
     end
 
-    state.temp .= state.x .- γ .* state.∇f_x
-    M = prox_αg!(pb, state.x, state.temp, γ)
+    state.temppoint_amb .= state.x.amb_repr .- γ .* state.∇f_x
+
+    M = prox_αg!(pb, state.x.man_repr, state.temppoint_amb, γ)
+    state.x.repr = manifold_repr
+
     state.M = M
     state.update_to_updatestate[m].γ = γ
 
@@ -31,4 +38,37 @@ end
 
 function display_logs()
     # γ          %.3e  state.γ
+end
+
+
+
+
+
+
+function backtrack_f_lipschitzgradient!(state::PartlySmoothOptimizerState, pb, γ)
+    τ = 1.2
+
+    ∇f_norm2 = norm(state.∇f_x)^2
+
+    itmax = 200
+    ncalls_f = 0
+
+    it_ls = 0
+    while it_ls <= itmax
+        state.temppoint_amb .= state.x.amb_repr .- γ .* state.∇f_x
+
+        # f(pb, state.temp) ≤ state.f_x - 1/(2*γ) * norm(state.temp-state.x)^2 && break
+        f(pb, state.temppoint_amb) ≤ state.f_x - γ / 2 * ∇f_norm2 && break
+
+        ncalls_f += 1
+        γ = γ / τ
+        it_ls += 1
+    end
+
+    if it_ls > itmax
+        @warn "Gradient backtracking: reached iterations limits."
+    end
+
+
+    return ncalls_f, γ
 end

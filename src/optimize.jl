@@ -11,13 +11,76 @@ function update_iterate!(state, pb, optimizer)
     return error("update_iterate! not implemented for optimizer state $(typeof(state)), problem $(typeof(pb)) and optimizer $(typeof(optimizer)).")
 end
 
-function display_logs(state, pb, optimizer, iteration, time, ose, tracing)
-    return error("display_logs not implemented for optimizer state $(typeof(state)), problem $(typeof(pb)) and optimizer $(typeof(optimizer)).")
-end
+#
+## Print and logs
+#
+
+display_logs_header_pre(o) = nothing
+display_logs_header_post(o) = nothing
 
 function display_logs_header(o::Optimizer)
-    return error("display_logs_header not implemented for optimizer $(typeof(o))")
+    display_logs_header_pre(o::Optimizer)
+    print("it.   F(x)                    f(x)       g(x)       step         tgt ∇f+g   nml ∇f+g   Manifold")
+    display_logs_header_post(o::Optimizer)
+    println()
+    return
 end
+
+
+display_logs_pre(optimizer, state, pb) = "0"
+display_logs_post(optimizer, state, pb) = ""
+
+function display_logs(state, pb, optimizer, iteration, time, optimstate_extensions, tracing)
+    x = get_repr(state.x)
+    x_old = get_repr(state.x_old)
+
+    normstep = norm(embed(state.x) - embed(state.x_old))
+    minsubgradient_tan, minsubgradient_norm = firstorder_optimality_tangnorm(pb, state.x, state.M, state.∇f_x)
+
+    if tracing
+        F_x = state.f_x + state.g_x
+
+        linestyle = display_logs_pre(optimizer, state, pb)
+        print("\033[$(linestyle)m")
+
+        F_x = state.f_x + state.g_x
+        @printf "%4i  %.16e  %-.3e  %-.3e  %-.3e    %-.3e  %-.3e" iteration F_x state.f_x state.g_x normstep minsubgradient_tan minsubgradient_norm
+
+        ## underlined manifold if state changed
+        manstyle = (state.M == state.M_old) ? linestyle : "4"
+        if length(string(state.M)) <= 14
+            print(repeat(" ", 2+12-length(string(state.M))), "\033[$(manstyle)m",state.M, "\033[0m\033[$(linestyle)m")
+        else
+            print("\033[$(manstyle)m",state.M, "\033[0m\033[$(linestyle)m")
+        end
+
+        display_logs_post(optimizer, state, pb)
+
+        print("\033[0m")
+        println()
+    end
+
+    return OptimizationState(
+        it = iteration,
+        time = time,
+        f_x = state.f_x,
+        g_x = state.g_x,
+        norm_step = normstep,
+        norm_minsubgradient_tangent = minsubgradient_tan,
+        norm_minsubgradient_normal = minsubgradient_norm,
+        additionalinfo = (;
+            zip(
+                [osextension.key for osextension in optimstate_extensions],
+                [
+                    copy(osextension.getvalue(state))
+                    for osextension in optimstate_extensions
+                ],
+            )...),
+    )
+end
+
+
+
 
 
 function optimize!(
@@ -60,7 +123,7 @@ function optimize!(
         iteration += 1
 
         state.M_old = state.M
-        state.x_old .= state.x
+        state.x_old = deepcopy(state.x)
 
 
         @timeit to "iterate update" update_iterate!(state, pb, optimizer)
@@ -93,13 +156,21 @@ function optimize!(
         #     end
         # end
 
-        # converged = (norm(state.x - state.x_old) < 1e-7)
-        # converged = (state.f_x + state.g_x < 1e-12)
-
         # stopped_by_empymanifold = manifold_dimension(state.M) == 0
         stopped_by_time_limit = _time - t0 > time_limit
         stopped = stopped_by_time_limit
     end
+
+    ## Optimality of last iterate
+    x = state.x
+    M = state.M
+
+    println("Optimality status of last iterate:")
+    res_tan, res_norm = firstorder_optimality_tangnorm(pb, x, M, state.∇f_x)
+
+    println("- ||Π_tangent(∇f+ḡ)||      : ", res_tan)
+    println("- ||Π_normal(∇f+ḡ)||       : ", res_norm)
+
 
     return tr
 end

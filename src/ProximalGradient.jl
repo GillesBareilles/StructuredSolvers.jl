@@ -80,57 +80,15 @@ function update_iterate!(state::ProximalGradientState, pb, optimizer::ProximalGr
 end
 
 
-function display_logs_header(o::ProximalGradient)
-    println("it.   F(x)                    f(x)       g(x)       γ          step       Manifold")
+
+
+
+display_logs_header_post(::ProximalGradient) = print("         γ")
+
+function display_logs_post(::ProximalGradient, state, pb)
+    @printf "     %.3e" state.γ
     return
 end
-
-function display_logs(
-    state::ProximalGradientState,
-    pb,
-    optimizer,
-    iteration,
-    time,
-    optimstate_extensions,
-    tracing,
-)
-    if tracing
-        style = state.M==state.M_old ? "" : "4"
-        @printf "%4i  %.16e  %-.3e  %-.3e  %.3e  %-.3e" iteration state.f_x + state.g_x state.f_x state.g_x state.γ norm(state.x - state.x_old)
-
-        if state.M == state.M_old
-            @printf "  \033[m%s\033[0m\n" state.M
-        else
-            @printf "  \033[4m%s\033[0m\n" state.M
-        end
-    end
-
-    ## TODO: This section of code is generic, should be factored. Plus, can the many allocs be avoided when zipping and building temp arrays?
-    keys = []
-    values = []
-    for osextension in optimstate_extensions
-        push!(keys)
-        push!(values, osextension.getvalue(state))
-    end
-
-    return OptimizationState(
-        it = iteration,
-        time = time,
-        f_x = state.f_x,
-        g_x = state.g_x,
-        norm_step = norm(state.x-state.x_old),
-        additionalinfo = (;
-            zip(
-                [osextension.key for osextension in optimstate_extensions],
-                [
-                    copy(osextension.getvalue(state))
-                    for osextension in optimstate_extensions
-                ],
-            )...),
-    )
-end
-
-
 
 
 

@@ -14,20 +14,26 @@ initial_state(::ManifoldGradient, x, reg) = ManifoldGradientState()
 
 Base.summary(o::ManifoldGradient) = "ManGradient"
 
-str_updatelog(o::ManifoldGradient, t::ManifoldGradientState) = @sprintf "|∇(f+g)ₘ|: %.2e   ls-nit%2i" t.norm_∇fgₘ t.ls_niter
+str_updatelog(o::ManifoldGradient, t::ManifoldGradientState) = @sprintf "ls-nit %2i" t.ls_niter
 
 function update_iterate!(state::PartlySmoothOptimizerState, pb, o::ManifoldGradient)
-    @assert is_manifold_point(state.M, state.x)
+    grad_fgₖ = state.tempvec_man
+    M = state.M
+    x = state.x.man_repr
 
-    grad_fgₖ = @view state.temp[:]     # makes code more readable
+    @assert state.x.repr == manifold_repr
+    @assert is_manifold_point(M, x)
 
-    grad_fgₖ .= egrad_to_rgrad(state.M, state.x, state.∇f_x) + ∇M_g(pb, state.M, state.x)
+    # TODO: remove intermediate alloc from .+= op.
+    grad_fgₖ = egrad_to_rgrad(state.M, x, state.∇f_x) + ∇M_g(pb, state.M, x)
 
+    state.update_to_updatestate[o].norm_∇fgₘ = norm(M, x, grad_fgₖ)
+
+    # TODO: make linesearch inplace for x, return status.
     hist_ls = Dict()
-    x_ls = linesearch(o.linesearch, pb, state.M, state.x, grad_fgₖ, -grad_fgₖ, hist=hist_ls)
+    x_ls = linesearch(o.linesearch, pb, state.M, state.x.man_repr, grad_fgₖ, -grad_fgₖ, hist=hist_ls)
 
-    state.x .= x_ls
-    state.update_to_updatestate[o].norm_∇fgₘ = norm(state.M, state.x, grad_fgₖ)
+    state.x.man_repr = x_ls
     state.update_to_updatestate[o].ls_niter = hist_ls[:niter]
     return
 end

@@ -11,35 +11,40 @@ abstract type AbstractUpdateState end
     manifold_update::ManUp = ManifoldIdentity()
 end
 
-mutable struct PartlySmoothOptimizerState{Tx} <: OptimizerState
+mutable struct PartlySmoothOptimizerState{Tambiant, Tmanpoint, Tmanvec} <: OptimizerState
     it::Int64
-    x::Tx
-    x_old::Tx
+    x::Point{Tambiant, Tmanpoint}
+    x_old::Point{Tambiant, Tmanpoint}
     M::Manifold
     M_old::Manifold
     f_x::Float64
     g_x::Float64
-    ∇f_x::Tx
-    temp::Tx
+    ∇f_x::Tambiant
+    temppoint_amb::Tambiant
+    tempvec_man::Tmanvec
     selected_update
     previous_update
     update_to_updatestate::Dict
 end
 function PartlySmoothOptimizerState(
     o::PartlySmoothOptimizer,
-    x::Tx,
+    x_amb::Tambiant,
     g::R;
-) where {Tx,R}
+) where {Tambiant,R}
+    wholespace_man = wholespace_manifold(g, x_amb)
+    x_man = project(wholespace_man, x_amb)
+
     return PartlySmoothOptimizerState(
         -1,
-        copy(x),
-        copy(x),
-        wholespace_manifold(g, x),
-        wholespace_manifold(g, x),
-        0.0,
-        0.0,
-        zero(x),
-        zero(x),
+        Point(x_amb, x_man, wholespace_man, ambiant_repr),
+        Point(x_amb, x_man, wholespace_man, ambiant_repr),
+        wholespace_man,
+        wholespace_man,
+        -Inf,
+        -Inf,
+        zero(x_amb),
+        zero(x_amb),
+        zero_tangent_vector(wholespace_man, x_man),
         nothing,
         nothing,
         Dict()
@@ -60,9 +65,11 @@ function print_header(pso::PartlySmoothOptimizer)
 end
 
 function update_fg∇f!(state::PartlySmoothOptimizerState, pb)
-    state.f_x = f(pb, state.x)
-    state.g_x = g(pb, state.x)
-    ∇f!(pb, state.∇f_x, state.x)
+    x = get_repr(state.x)
+
+    state.f_x = f(pb, x)
+    state.g_x = g(pb, x)
+    ∇f!(pb, state.∇f_x, x)
     state.it += 1
     return
 end
@@ -74,81 +81,61 @@ function initial_state(o::PartlySmoothOptimizer, x, reg)
     return initstate
 end
 
-function update_iterate!(state::PartlySmoothOptimizerState, pb, optimizer::PartlySmoothOptimizer)
-    state.M = state.M_old
-    select_update!(optimizer.update_selector, state, optimizer, pb)
 
-    update_iterate!(state, pb, state.selected_update)
+
+
+function convert_point_repr!(x::Point{Tamb, Tman}, ::WholespaceUpdate) where {Tamb, Tman}
+    if x.repr == manifold_repr
+        x.amb_repr = embed(x.M, x.man_repr)
+        x.repr = ambiant_repr
+    end
+    return
+end
+
+function convert_point_repr!(x::Point{Tamb, Tman}, ::ManifoldUpdate) where {Tamb, Tman}
+    if x.repr == ambiant_repr
+        printstyled("TODO: update ambiant repr\n", color=:red)
+    end
+    return
+end
+
+function update_iterate!(ostate::PartlySmoothOptimizerState, pb, optimizer::PartlySmoothOptimizer)
+    ostate.M = ostate.M_old
+
+    select_update!(optimizer.update_selector, ostate, optimizer, pb)
+
+    # A composite update expects points in ambiant space, while a manifold one in manifold representation.
+    convert_point_repr!(ostate, optimizer, pb)
+
+    update_iterate!(ostate, pb, ostate.selected_update)
+
     return
 end
 
 
 
+#
+### Printing and logging
+#
 function display_logs_header(o::PartlySmoothOptimizer)
-    print("it.   F(x)                    f(x)       g(x)       step         Manifold      Update\n")
+    print("it.   F(x)                    f(x)       g(x)       step         tgt ∇f+g   nml ∇f+g   Manifold      Update\n")
     return
 end
 
 str_updatelog(::AbstractUpdate, ::OptimizerState) = ""
 str_updatelog(::Nothing, ::OptimizerState) = ""
 
-function display_logs(
-    state::PartlySmoothOptimizerState,
-    pb,
-    optimizer,
-    iteration,
-    time,
-    optimstate_extensions,
-    tracing,
-)
-    if tracing
-        ## Proximal gradient steps are displayed in gray
-        iswholeupdate = isa(state.selected_update,WholespaceUpdate)
-        linestyle = iswholeupdate ? "90" : "0"
-        print("\033[$(linestyle)m")
 
-        F_x = state.f_x + state.g_x
-        @printf "%4i  %.16e  %-.3e  %-.3e  %-.3e  " iteration F_x state.f_x state.g_x norm(state.x - state.x_old)
-
-        ## underlined manifold if state changed
-        manstyle = (state.M == state.M_old) ? linestyle : "4"
-        if length(string(state.M)) <= 14
-            print(repeat(" ", 2+12-length(string(state.M))), "\033[$(manstyle)m",state.M, "\033[0m\033[$(linestyle)m")
-        else
-            print("\033[$(manstyle)m",state.M, "\033[0m\033[$(linestyle)m")
-        end
-
-        @printf "  %-10s\t" summary(state.selected_update)
-
-        if !isnothing(state.selected_update)
-            print(str_updatelog(state.selected_update, state.update_to_updatestate[state.selected_update]))
-        end
-
-        iswholeupdate && print("\033[0m")
-        println()
-    end
-
-    ## TODO: This section of code is generic, should be factored. Plus, can the many allocs be avoided when zipping and building temp arrays?
-    keys = []
-    values = []
-    for osextension in optimstate_extensions
-        push!(keys)
-        push!(values, osextension.getvalue(state))
-    end
-
-    return OptimizationState(
-        it = iteration,
-        time = time,
-        f_x = state.f_x,
-        g_x = state.g_x,
-        norm_step = norm(state.x-state.x_old),
-        additionalinfo = (;
-            zip(
-                [osextension.key for osextension in optimstate_extensions],
-                [
-                    copy(osextension.getvalue(state))
-                    for osextension in optimstate_extensions
-                ],
-            )...),
-    )
+function display_logs_pre(::PartlySmoothOptimizer, state, pb)
+    return isa(state.selected_update,WholespaceUpdate) ? "90" : "0"
 end
+
+function display_logs_post(::PartlySmoothOptimizer, state, pb)
+    @printf "  %-13s\t" summary(state.selected_update)
+
+    if !isnothing(state.selected_update)
+        print(str_updatelog(state.selected_update, state.update_to_updatestate[state.selected_update]))
+    end
+    return
+end
+display_logs_header_post(::PartlySmoothOptimizerState) = print("      Update")

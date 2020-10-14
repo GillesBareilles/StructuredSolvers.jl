@@ -9,12 +9,16 @@ end
 function linesearch(ls::ArmijoGoldstein, pb::CompositeProblem, M::Manifold, x, ∇fₘ, d; hist=Dict())
     @unpack ω₁, ω₂, τₑ = ls
 
+    # TODO: replace 0 by -ϵ, ϵ>0 for descent dirction criterion.
+    # TODO: extrapolation step for gradient...
+    @assert inner(M, x, ∇fₘ, d) / (norm(M, x, ∇fₘ)*norm(M, x, d)) < 0
+
     α = 1
     α_low, α_up = 0, Inf
 
     F_x = F(pb, x)
     F_cand = Inf
-    x_cand = zeros(size(x))
+    x_cand = deepcopy(x)
     dh_0 = inner(M, x, ∇fₘ, d)
 
     hist[:ncalls_f] = 1
