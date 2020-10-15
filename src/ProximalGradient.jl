@@ -83,10 +83,10 @@ end
 
 
 
-display_logs_header_post(::ProximalGradient) = print("         γ")
+display_logs_header_post(::ProximalGradient) = print("γ")
 
 function display_logs_post(::ProximalGradient, state, pb)
-    @printf "     %.3e" state.γ
+    @printf "%.3e" state.γ
     return
 end
 

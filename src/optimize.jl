@@ -20,7 +20,7 @@ display_logs_header_post(o) = nothing
 
 function display_logs_header(o::Optimizer)
     display_logs_header_pre(o::Optimizer)
-    print("it.   F(x)                    f(x)       g(x)       step         tgt ∇f+g   nml ∇f+g   Manifold")
+    print("it.   F(x)                    f(x)       g(x)       step         tgt ∇f+g   nml ∇f+g     Manifold                          ")
     display_logs_header_post(o::Optimizer)
     println()
     return
@@ -44,15 +44,16 @@ function display_logs(state, pb, optimizer, iteration, time, optimstate_extensio
         print("\033[$(linestyle)m")
 
         F_x = state.f_x + state.g_x
-        @printf "%4i  %.16e  %-.3e  %-.3e  %-.3e    %-.3e  %-.3e" iteration F_x state.f_x state.g_x normstep minsubgradient_tan minsubgradient_norm
+        @printf "%4i  %.16e  %-.3e  %-.3e  %-.3e    %-.3e  %-.3e " iteration F_x state.f_x state.g_x normstep minsubgradient_tan minsubgradient_norm
 
         ## underlined manifold if state changed
         manstyle = (state.M == state.M_old) ? linestyle : "4"
-        if length(string(state.M)) <= 14
-            print(repeat(" ", 2+12-length(string(state.M))), "\033[$(manstyle)m",state.M, "\033[0m\033[$(linestyle)m")
+        if length(string(state.M)) <= 35
+            print(repeat(" ", 35-length(string(state.M))), "\033[$(manstyle)m",state.M, "\033[0m\033[$(linestyle)m")
         else
             print("\033[$(manstyle)m",state.M, "\033[0m\033[$(linestyle)m")
         end
+        print("  ")
 
         display_logs_post(optimizer, state, pb)
 

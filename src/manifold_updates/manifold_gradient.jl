@@ -14,7 +14,7 @@ initial_state(::ManifoldGradient, x, reg) = ManifoldGradientState()
 
 Base.summary(o::ManifoldGradient) = "ManGradient"
 
-str_updatelog(o::ManifoldGradient, t::ManifoldGradientState) = @sprintf "ls-nit %2i" t.ls_niter
+str_updatelog(o::ManifoldGradient, t::ManifoldGradientState) = @sprintf "ls-nit %2i\t\t||gradₘ f+g|| %.3e" t.ls_niter t.norm_∇fgₘ
 
 function update_iterate!(state::PartlySmoothOptimizerState, pb, o::ManifoldGradient)
     grad_fgₖ = state.tempvec_man

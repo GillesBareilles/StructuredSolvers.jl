@@ -117,21 +117,17 @@ end
 #
 ### Printing and logging
 #
-function display_logs_header(o::PartlySmoothOptimizer)
-    print("it.   F(x)                    f(x)       g(x)       step         tgt ∇f+g   nml ∇f+g   Manifold      Update\n")
-    return
-end
-
 str_updatelog(::AbstractUpdate, ::OptimizerState) = ""
 str_updatelog(::Nothing, ::OptimizerState) = ""
 
+display_logs_header_post(o::PartlySmoothOptimizer) = print("Update")
 
 function display_logs_pre(::PartlySmoothOptimizer, state, pb)
     return isa(state.selected_update,WholespaceUpdate) ? "90" : "0"
 end
 
 function display_logs_post(::PartlySmoothOptimizer, state, pb)
-    @printf "  %-13s\t" summary(state.selected_update)
+    @printf "%-13s\t" summary(state.selected_update)
 
     if !isnothing(state.selected_update)
         print(str_updatelog(state.selected_update, state.update_to_updatestate[state.selected_update]))
