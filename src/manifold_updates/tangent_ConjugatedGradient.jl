@@ -9,11 +9,12 @@ Note that we are looking for a direction d in the tangent space of M at x, and t
 ∇²f_M contains at least the orthogonal to this set. CG should naturally give a solution
 living in the tangent space.
 """
-function solve_tCG(M, x, gradfₖ, hessf_x_h; ν=1e-3, ϵ_residual = 1e-13, maxiter=1e5, safe_projection=true, printlev=0)
+function solve_tCG(M, x, gradfₖ, hessf_x_h; ν=1e-3, ϵ_residual = 1e-13, maxiter=1e5, safe_projection=false, printlev=0)
+    norm_x(η) = norm(M, x, η)
 
-    dₖ = zero(gradfₖ)
-    rⱼ, rⱼ_prev = zero(gradfₖ), zero(gradfₖ)
-    vⱼ, vⱼ_prev = zero(gradfₖ), zero(gradfₖ)
+    dₖ = zero_tangent_vector(M, x)
+    rⱼ, rⱼ_prev = zero_tangent_vector(M, x), zero_tangent_vector(M, x)
+    vⱼ, vⱼ_prev = zero_tangent_vector(M, x), zero_tangent_vector(M, x)
 
     j = 0
 
@@ -27,13 +28,13 @@ function solve_tCG(M, x, gradfₖ, hessf_x_h; ν=1e-3, ϵ_residual = 1e-13, maxi
 
         vⱼ = - rⱼ
         if j ≥ 1
-            βⱼ = norm(rⱼ)^2 / norm(rⱼ_prev)^2
+            βⱼ = norm_x(rⱼ)^2 / norm_x(rⱼ_prev)^2
             vⱼ += βⱼ * vⱼ_prev
         end
 
         hessf_x_vⱼ = hessf_x_h(vⱼ)
-        (printlev>0) && @printf "%5i %.10e    %.10e    % .10e     %.10e\n" j norm(rⱼ) norm(vⱼ) inner(M, x, vⱼ, hessf_x_vⱼ) ν * norm(vⱼ)^2
-        if norm(rⱼ) < ϵ_residual || inner(M, x, vⱼ, hessf_x_vⱼ) < ν * norm(vⱼ)^2 || j > maxiter
+        (printlev>0) && @printf "%5i %.10e    %.10e    % .10e     %.10e\n" j norm_x(rⱼ) norm_x(vⱼ) inner(M, x, vⱼ, hessf_x_vⱼ) ν * norm_x(vⱼ)^2
+        if norm_x(rⱼ) < ϵ_residual || inner(M, x, vⱼ, hessf_x_vⱼ) < ν * norm_x(vⱼ)^2 || j > maxiter
             ## Satisfying point obtained
             if j == 0
                 dₖ = -gradfₖ
@@ -44,8 +45,8 @@ function solve_tCG(M, x, gradfₖ, hessf_x_h; ν=1e-3, ϵ_residual = 1e-13, maxi
         tⱼ = - inner(M, x, rⱼ, vⱼ) / inner(M, x, vⱼ, hessf_x_vⱼ)
         dₖ += tⱼ * vⱼ
 
-        rⱼ_prev = copy(rⱼ)
-        vⱼ_prev = copy(vⱼ)
+        rⱼ_prev = deepcopy(rⱼ)
+        vⱼ_prev = deepcopy(vⱼ)
 
         j += 1
     end

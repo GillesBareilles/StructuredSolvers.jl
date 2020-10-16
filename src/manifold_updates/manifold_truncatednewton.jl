@@ -29,10 +29,12 @@ end
 
 initial_state(::ManifoldTruncatedNewton, x, reg) = ManifoldTruncatedNewtonState()
 
+# str_updatelog(o::ManifoldGradient, t::ManifoldGradientState) = @sprintf "ls-nit %2i\t\t||gradₘ f+g|| %.3e" t.ls_niter t.norm_∇fgₘ
+
 function str_updatelog(::ManifoldTruncatedNewton, t::ManifoldTruncatedNewtonState)
     resstyle = (t.CG_residual <= t.CG_ε) ? "0" : "4;1"
     return string(
-        (@sprintf "|∇(f+g)ₘ|: %.2e   CG: nit:%3i  νₖ:%.1e ε:%.1e residual:" t.norm_∇fgₘ t.CG_niter t.νₖ t.CG_ε),
+        (@sprintf "|∇ₘf+g|: %.2e   CG: nit:%3i  νₖ:%.1e ε:%.1e res:" t.norm_∇fgₘ t.CG_niter t.νₖ t.CG_ε),
         "\033[$(resstyle)m",
         (@sprintf "%.1e" t.CG_residual),
         "\033[0m",
@@ -41,43 +43,54 @@ function str_updatelog(::ManifoldTruncatedNewton, t::ManifoldTruncatedNewtonStat
 end
 
 function update_iterate!(state::PartlySmoothOptimizerState{Tx}, pb, o::ManifoldTruncatedNewton) where Tx
-    @assert is_manifold_point(state.M, state.x)
+    ###
+    grad_fgₖ = state.tempvec_man
+    M = state.M
+    x = state.x.man_repr
 
-    man_truncnewton_state = state.update_to_updatestate[o]
-    grad_fgₖ = @view state.temp[:]     # makes code more readable
-    if (Tx <: Array) && (Tx.parameters[2] == 2)
-        grad_fgₖ = @view state.temp[:, :]
-    end
+    @assert state.x.repr == manifold_repr
+    @assert is_manifold_point(M, x)
+
+    state_TN = state.update_to_updatestate[o]
 
     ncalls_f = 0
     ncalls_∇f = 0
     ncalls_∇²fh = 0
 
     @unpack ν_reductionfactor = o
-    @unpack νₖ = man_truncnewton_state
+    @unpack νₖ = state_TN
 
     ## 1. Get first & second order information
-    grad_fgₖ .= egrad_to_rgrad(state.M, state.x, state.∇f_x) + ∇M_g(pb, state.M, state.x)
-    norm_rgrad = norm(state.M, state.x, grad_fgₖ)
-
+    # TODO: remove intermediate alloc from .+= op.
+    grad_fgₖ = egrad_to_rgrad(M, x, state.∇f_x) + ∇M_g(pb, M, x)
     function hessfg_x_h(ξ)
         ncalls_∇²fh += 1
-        return ehess_to_rhess(state.M, state.x, state.∇f_x, ∇²f_h(pb, state.x, ξ), ξ) + ∇²M_g_ξ(pb, state.M, state.x, ξ)
+        return ehess_to_rhess(M, x, state.∇f_x, ∇²f_h(pb, x, ξ), ξ) + ∇²M_g_ξ(pb, M, x, ξ)
     end
 
+    norm_rgrad = norm(M, x, grad_fgₖ)
+    state_TN.norm_∇fgₘ = norm_rgrad
+
     ncalls_∇f += 1
-    check_tangent_vector(state.M, state.x, grad_fgₖ)
+    # check_tangent_vector(M, x, grad_fgₖ)
 
     ## 2. Get Truncated Newton direction
     ϵ_residual = min(0.5, sqrt(norm_rgrad)) * norm_rgrad    # Forcing sequence as sugested in NW, p. 168
-    dᴺ, man_truncnewton_state.CG_niter = solve_tCG(state.M, state.x, grad_fgₖ, hessfg_x_h, ϵ_residual=ϵ_residual, ν = νₖ)
+    ϵ_residual = 1e-15
+    νₖ = 1e-10
+    maxiter = 20
+    dᴺ, state_TN.CG_niter = solve_tCG(M, x, grad_fgₖ, hessfg_x_h, ϵ_residual = ϵ_residual, ν = νₖ, printlev=0, maxiter=maxiter)
 
-    check_tangent_vector(state.M, state.x, dᴺ)
+    # check_tangent_vector(M, x, dᴺ)
 
     ## 3. Execute linesearch
+    # TODO: make linesearch inplace for x, return status.
     hist_ls = Dict()
+    x_ls = linesearch(o.linesearch, pb, M, x, grad_fgₖ, dᴺ, hist=hist_ls)
 
-    x_ls = linesearch(o.linesearch, pb, state.M, state.x, grad_fgₖ, dᴺ, hist=hist_ls)
+    x = x_ls
+    state_TN.ls_niter = hist_ls[:niter]
+
 
     ncalls_f += hist_ls[:ncalls_f]
 
@@ -85,26 +98,25 @@ function update_iterate!(state::PartlySmoothOptimizerState{Tx}, pb, o::ManifoldT
     ν_strat = :ls
     if ν_strat == :ls
         if hist_ls[:niter] == 1
-            man_truncnewton_state.νₖ *= ν_reductionfactor
+            state_TN.νₖ *= ν_reductionfactor
         end
     elseif ν_strat == :lsnormgrad
         if hist_ls[:niter] == 1 && νₖ ≥ 1e-2 * norm_rgrad^2
-            man_truncnewton_state.νₖ *= ν_reductionfactor
+            state_TN.νₖ *= ν_reductionfactor
         end
     else
         @error "unknown reduction strategy"
     end
 
-    state.x .= x_ls
+    state.x.man_repr = x_ls
 
     ### Logging data
-    man_truncnewton_state.norm_∇fgₘ = norm(state.M, state.x, grad_fgₖ)
-    man_truncnewton_state.CG_ε = ϵ_residual
-    man_truncnewton_state.CG_residual = norm(state.M, state.x, hessfg_x_h(dᴺ) + grad_fgₖ)
-    man_truncnewton_state.norm_dᴺ = norm(state.M, state.x, dᴺ)
-    man_truncnewton_state.cosθ = inner(state.M, state.x, -dᴺ, grad_fgₖ)/(norm(state.M, state.x, dᴺ)*norm_rgrad)
-    man_truncnewton_state.λ_x = inner(state.M, state.x, -dᴺ, grad_fgₖ)
-    man_truncnewton_state.ls_niter = hist_ls[:niter]
+    state_TN.CG_ε = ϵ_residual
+    state_TN.CG_residual = norm(M, x, hessfg_x_h(dᴺ) + grad_fgₖ)
+    state_TN.norm_dᴺ = norm(M, x, dᴺ)
+    state_TN.cosθ = inner(M, x, -dᴺ, grad_fgₖ)/(norm(M, x, dᴺ)*norm_rgrad)
+    state_TN.λ_x = inner(M, x, -dᴺ, grad_fgₖ)
+    state_TN.ls_niter = hist_ls[:niter]
 
     return
 end
