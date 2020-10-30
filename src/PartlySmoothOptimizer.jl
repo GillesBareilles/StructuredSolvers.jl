@@ -95,6 +95,7 @@ end
 function convert_point_repr!(x::Point{Tamb, Tman}, ::ManifoldUpdate) where {Tamb, Tman}
     if x.repr == ambiant_repr
         printstyled("TODO: update ambiant repr\n", color=:red)
+        @assert false
     end
     return
 end

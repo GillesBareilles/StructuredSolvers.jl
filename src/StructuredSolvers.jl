@@ -63,14 +63,16 @@ export WholespaceProximalGradient
 # Manifold updates
 abstract type ManifoldLinesearch end
 include("linesearches/armijogoldstein.jl")
-include("manifold_updates/tangent_ConjugatedGradient.jl")
+include("manifold_updates/tangent_CG.jl")
 
 include("manifold_updates/manifold_identity.jl")
 include("manifold_updates/manifold_gradient.jl")
 include("manifold_updates/manifold_truncatednewton.jl")
+include("manifold_updates/manifold_NewtonCG.jl")
 export ManifoldIdentity
 export ManifoldGradient
 export ManifoldTruncatedNewton
+export ManNewtonCG
 
 
 using Colors

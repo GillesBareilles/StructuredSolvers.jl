@@ -1,4 +1,3 @@
-
 """
 dₖ = solve_tCG(M, x, gradf_k, hessf_x_h, ν=1e-2, ϵ_residual = 1e-5)
 
@@ -16,6 +15,7 @@ function solve_tCG(M, x, gradfₖ, hessf_x_h; ν=1e-3, ϵ_residual = 1e-13, maxi
     rⱼ, rⱼ_prev = zero_tangent_vector(M, x), zero_tangent_vector(M, x)
     vⱼ, vⱼ_prev = zero_tangent_vector(M, x), zero_tangent_vector(M, x)
 
+    d_type = :Unsolved
     j = 0
 
     (printlev>0) && @printf "\nj     norm(rⱼ)             norm(vⱼ)             ⟨vⱼ, hessf(x)[vⱼ]⟩   ν * norm(vⱼ)^2\n"
@@ -39,6 +39,20 @@ function solve_tCG(M, x, gradfₖ, hessf_x_h; ν=1e-3, ϵ_residual = 1e-13, maxi
             if j == 0
                 dₖ = -gradfₖ
             end
+
+            if norm_x(rⱼ) < ϵ_residual
+                d_type = :Solved
+                # printstyled("Exiting: ||rⱼ|| < ϵ : $(norm_x(rⱼ)) < $ϵ_residual\n", color=:red)
+            elseif j > maxiter
+                d_type = :MaxIter
+                printstyled("Exiting: j > maxiter : $j > $maxiter\n", color=:red)
+            else
+                d_type = :QuasiNegCurvature
+                a = inner(M, x, vⱼ, hessf_x_vⱼ)
+                b = ν * norm_x(vⱼ)^2
+                printstyled("Exiting: ⟨vⱼ, hessf_x(vⱼ)⟩ < ν * ||vⱼ||² : $a < $b\n", color=:red)
+            end
+
             break
         end
 
@@ -51,5 +65,8 @@ function solve_tCG(M, x, gradfₖ, hessf_x_h; ν=1e-3, ϵ_residual = 1e-13, maxi
         j += 1
     end
 
-    return dₖ, j
+    return dₖ, j, d_type
 end
+
+
+

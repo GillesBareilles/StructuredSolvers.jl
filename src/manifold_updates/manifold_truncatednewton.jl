@@ -21,6 +21,7 @@ Base.summary(::ManifoldTruncatedNewton) = "ManTruncNewton"
     CG_niter::Int64 = -1
     CG_ε::Float64 = -1
     CG_residual::Float64 = -1
+    d_type::Symbol = :Unsolved
     norm_dᴺ::Float64 = -1
     cosθ::Float64 = -1
     λ_x::Float64 = -1
@@ -34,7 +35,7 @@ initial_state(::ManifoldTruncatedNewton, x, reg) = ManifoldTruncatedNewtonState(
 function str_updatelog(::ManifoldTruncatedNewton, t::ManifoldTruncatedNewtonState)
     resstyle = (t.CG_residual <= t.CG_ε) ? "0" : "4;1"
     return string(
-        (@sprintf "|∇ₘf+g|: %.2e   CG: nit:%3i  νₖ:%.1e ε:%.1e res:" t.norm_∇fgₘ t.CG_niter t.νₖ t.CG_ε),
+        (@sprintf "CG: nit:%3i  %s νₖ:%.1e ε:%.1e res:" t.CG_niter string(t.d_type) t.νₖ t.CG_ε),
         "\033[$(resstyle)m",
         (@sprintf "%.1e" t.CG_residual),
         "\033[0m",
@@ -76,10 +77,10 @@ function update_iterate!(state::PartlySmoothOptimizerState{Tx}, pb, o::ManifoldT
 
     ## 2. Get Truncated Newton direction
     ϵ_residual = min(0.5, sqrt(norm_rgrad)) * norm_rgrad    # Forcing sequence as sugested in NW, p. 168
-    ϵ_residual = 1e-15
+    ϵ_residual = 1e-13
     νₖ = 1e-10
-    maxiter = 20
-    dᴺ, state_TN.CG_niter = solve_tCG(M, x, grad_fgₖ, hessfg_x_h, ϵ_residual = ϵ_residual, ν = νₖ, printlev=0, maxiter=maxiter)
+    maxiter = 40
+    dᴺ, state_TN.CG_niter, state_TN.d_type = solve_tCG(M, x, grad_fgₖ, hessfg_x_h, ϵ_residual = ϵ_residual, ν = νₖ, printlev=0, maxiter=maxiter)
 
     # check_tangent_vector(M, x, dᴺ)
 
@@ -91,6 +92,7 @@ function update_iterate!(state::PartlySmoothOptimizerState{Tx}, pb, o::ManifoldT
     x = x_ls
     state_TN.ls_niter = hist_ls[:niter]
 
+    # @show sign.(Vector(x))
 
     ncalls_f += hist_ls[:ncalls_f]
 

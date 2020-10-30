@@ -9,8 +9,8 @@ using LinearAlgebra
 function main()
 
 
-    n, m, sparsity = 100, 60, 0.5
-    n, m, sparsity = 10, 5, 0.5
+    n, m, sparsity = 100, 130, 0.5
+    n, m, sparsity = 10, 10, 0.5
     pb = get_lasso_MLE(n=n, m=m, sparsity=sparsity)
     pbname = "lasso"
 
@@ -68,11 +68,12 @@ function main()
 
 
         optparams = OptimizerParams(
-            iterations_limit = 60,
-            trace_length = 60,
+            iterations_limit = 500,
+            trace_length = 500,
         )
     end
 
+    @show pb
 
     maxit = 500
 
@@ -122,20 +123,25 @@ function main()
     # trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
     # optimdata[optimizer] = trace
 
-    optimizer = ProximalGradient(extrapolation = MFISTA(AcceleratedProxGrad()))
-    trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
-    optimdata[optimizer] = trace
+    # optimizer = ProximalGradient(extrapolation = MFISTA(AcceleratedProxGrad()))
+    # trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
+    # optimdata[optimizer] = trace
 
     # Alternating
     # optimizer = PartlySmoothOptimizer(manifold_update = ManifoldIdentity())
     # trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
     # optimdata[optimizer] = trace
 
-    optimizer = PartlySmoothOptimizer(manifold_update = ManifoldGradient())
+    # optimizer = PartlySmoothOptimizer(manifold_update = ManifoldGradient())
+    # trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
+    # optimdata[optimizer] = trace
+
+    optimizer = PartlySmoothOptimizer(manifold_update = ManifoldTruncatedNewton())
     trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
     optimdata[optimizer] = trace
 
-    optimizer = PartlySmoothOptimizer(manifold_update = ManifoldTruncatedNewton())
+
+    optimizer = PartlySmoothOptimizer(manifold_update = ManNewtonCG())
     trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
     optimdata[optimizer] = trace
 
