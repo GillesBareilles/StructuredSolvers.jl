@@ -3,24 +3,11 @@ function has_converged(cvchecker::ConvergenceChecker, optimizerstate::OptimizerS
 end
 
 
-@with_kw struct ProxGradStepLength <: ConvergenceChecker
-    tol::Float64 = 1e-15
+@with_kw struct FirstOrderOptimality <: ConvergenceChecker
+    tol_tangent::Float64 = 1e-13
+    tol_normal::Float64 = 1e-13
 end
 
-function has_converged(cvchecker::ProxGradStepLength, pb::CompositeProblem, optimizer::Optimizer, state::PartlySmoothOptimizerState)
-    γ = state.update_to_updatestate[optimizer.wholespace_update].γ
-
-    # state.temp .= state.x .- γ .* state.∇f_x
-    # res, M = prox_αg(pb, state.temp, γ)
-
-    # @show norm((state.x - res) / γ)
-    # return norm(state.x - state.temp) < cvchecker.tol
-    return false
-end
-
-function has_converged(cvchecker::ProxGradStepLength, pb::CompositeProblem, o::Optimizer, state::ProximalGradientState)
-    γ = state.γ
-    # state.temp .= state.x .- γ .* state.∇f_x
-    # return norm(state.x - prox_αg(pb, state.temp, γ)[1]) < cvchecker.tol
-    return false
+function has_converged(cvchecker::FirstOrderOptimality, pb::CompositeProblem, o::Optimizer, os::OptimizationState)
+    return (os.norm_minsubgradient_tangent < cvchecker.tol_tangent) && (os.norm_minsubgradient_normal < cvchecker.tol_normal)
 end

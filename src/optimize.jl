@@ -149,13 +149,9 @@ function optimize!(
         push!(tr, optimizationstate)
 
         converged = false
-        # for cvchecker in optparams.cvcheckers
-        #     converged = converged || has_converged(cvchecker, pb, optimizer, state)
-        #     if converged
-        #         @info "Exiting with convergence criterion"
-        #         break
-        #     end
-        # end
+        for cvchecker in optparams.cvcheckers
+            converged = converged || has_converged(cvchecker, pb, optimizer, optimizationstate)
+        end
 
         # stopped_by_empymanifold = manifold_dimension(state.M) == 0
         stopped_by_time_limit = _time - t0 > time_limit
