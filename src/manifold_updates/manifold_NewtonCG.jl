@@ -85,7 +85,8 @@ function update_iterate!(state::PartlySmoothOptimizerState{Tx}, pb, o::ManNewton
 
     # @show d_type
     if state_TN.d_type == :NegativeCurvature
-        dₖ = - sign(inner(M, x, dₖ, grad_fgₖ)) * inner(M, x, dₖ, hessfg_x_h(dₖ)) * norm(M, x, dₖ)^(-3) * dₖ
+        dₖ = - sign(inner(M, x, dₖ, grad_fgₖ)) * abs(inner(M, x, dₖ, hessfg_x_h(dₖ))) * norm(M, x, dₖ)^(-3) * dₖ
+    elseif state_TN.d_type == :MaxIter
     else
         @assert state_TN.d_type == :Solution "Unknown d_type" state_TN.d_type
     end

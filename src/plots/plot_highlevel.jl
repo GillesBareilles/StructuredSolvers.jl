@@ -21,9 +21,7 @@ function plot_fvals_iteration(
     end
 
     get_abscisses(states) = [state_absciss(state) for state in states]
-    function get_ordinates(otpimizer, states)
-        return [state.f_x + state.g_x - F_opt for state in states]
-    end
+    get_ordinates(otpimizer, states) = [state.f_x + state.g_x - F_opt for state in states]
 
     return plot_curves(
         optimizer_to_trace::AbstractDict{Optimizer, Any},
@@ -44,31 +42,20 @@ function plot_fvals_time(
 end
 
 
-"""
-    plot_step_iteration(optimizer_to_trace; Fmin)
 
-Plot suboptimality as a function of iterations. The baseline functional value should be supplied
-for computing suboptimality.
+
+"""
+    plot_step_iteration(optimizer_to_trace)
+
+Plot suboptimality as a function of iterations.
 """
 function plot_step_iteration(
     optimizer_to_trace::AbstractDict{Optimizer, Any};
-    F_opt=nothing,
     state_absciss = s->s.it,
     xlabel = "iterations"
 )
-    if isnothing(F_opt)
-        F_opt=+Inf
-        for (optimizer, trace) in optimizer_to_trace
-            for state in trace
-                F_opt = min(F_opt, state.f_x+state.g_x)
-            end
-        end
-    end
-
     get_abscisses(states) = [state_absciss(state) for state in states]
-    function get_ordinates(otpimizer, states)
-        return [state.norm_step for state in states]
-    end
+    get_ordinates(otpimizer, states) = [state.norm_step for state in states]
 
     return plot_curves(
         optimizer_to_trace::AbstractDict{Optimizer, Any},
@@ -80,11 +67,62 @@ function plot_step_iteration(
         nmarks = 15,
     )
 end
-function plot_step_time(
+function plot_step_time(optimizer_to_trace::AbstractDict{Optimizer, Any})
+    return plot_step_iteration(optimizer_to_trace, state_absciss = s->s.time, xlabel="time (s)")
+end
+
+"""
+    plot_tangentres_iteration(optimizer_to_trace)
+
+Plot tangent residual as a function of iterations.
+"""
+function plot_tangentres_iteration(
     optimizer_to_trace::AbstractDict{Optimizer, Any};
-    F_opt=nothing,
+    state_absciss = s->s.it,
+    xlabel = "iterations"
 )
-    return plot_step_iteration(optimizer_to_trace, F_opt=F_opt, state_absciss = s->s.time, xlabel="time (s)")
+    get_abscisses(states) = [state_absciss(state) for state in states]
+    get_ordinates(otpimizer, states) = [state.norm_minsubgradient_tangent for state in states]
+
+    return plot_curves(
+        optimizer_to_trace::AbstractDict{Optimizer, Any},
+        get_abscisses,
+        get_ordinates,
+        xlabel = xlabel,
+        ylabel = L"$\|\nabla_M (f+g)(x_k)\|$",
+        ymode = "log",
+        nmarks = 15,
+    )
+end
+function plot_tangentres_time(optimizer_to_trace::AbstractDict{Optimizer, Any})
+    return plot_tangentres_iteration(optimizer_to_trace, state_absciss = s->s.time, xlabel="time (s)")
+end
+
+"""
+    plot_normalres_iteration(optimizer_to_trace)
+
+Plot tangent residual as a function of iterations.
+"""
+function plot_normalres_iteration(
+    optimizer_to_trace::AbstractDict{Optimizer, Any};
+    state_absciss = s->s.it,
+    xlabel = "iterations"
+)
+    get_abscisses(states) = [state_absciss(state) for state in states]
+    get_ordinates(otpimizer, states) = [state.norm_minsubgradient_normal for state in states]
+
+    return plot_curves(
+        optimizer_to_trace::AbstractDict{Optimizer, Any},
+        get_abscisses,
+        get_ordinates,
+        xlabel = xlabel,
+        ylabel = L"normal comp. $\partial (f+g)(x_k)$",
+        ymode = "linear",
+        nmarks = 15,
+    )
+end
+function plot_normalres_time(optimizer_to_trace::AbstractDict{Optimizer, Any})
+    return plot_normalres_iteration(optimizer_to_trace, state_absciss = s->s.time, xlabel="time (s)")
 end
 
 """

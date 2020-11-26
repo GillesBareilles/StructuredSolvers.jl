@@ -8,20 +8,38 @@ using LinearAlgebra
 using Distributions
 
 function main()
+    pb = :logit
+    pb = :logit_ionosphere
 
+    nit_precisesolve = 500
+    nit_precisesolve = 3
 
-    n, m, sparsity = 100, 130, 0.5
-    # n, m, sparsity = 10, 10, 0.5
-    pb = get_lasso_MLE(n=n, m=m, sparsity=sparsity)
-    pbname = "lasso"
+    if pb == :logit
+        n, m, sparsity = 100, 50, 0.5
+        pb = get_logit_MLE(n=n, m=m, sparsity=sparsity, λ=0.001)
+        pbname = "logit"
 
-    Random.seed!(4567)
-    x0 = rand(n) .* 0
+        Random.seed!(4567)
+        x0 = zeros(n)
 
-    optparams = OptimizerParams(
-        iterations_limit = 35,
-        trace_length = 35,
-    )
+        optparams = OptimizerParams(
+            iterations_limit = 150,
+            trace_length = 150,
+        )
+    elseif pb == :logit_ionosphere
+        pb = get_logit_ionosphere(λ=0.01)
+        n = problem_dimension(pb)
+        pbname = "logit-ionosphere"
+
+        Random.seed!(4567)
+        x0 = zeros(n)
+        maxit = 100
+
+        optparams = OptimizerParams(
+            iterations_limit = 60,
+            trace_length = 60,
+        )
+    end
 
     @show pb
     @show optparams
@@ -29,17 +47,26 @@ function main()
     #
     ### Optimal solution
     #
-    final_optim_state = StructuredSolvers.precise_solve(pb, x0, iterations_limit=3)
+    optimdata = OrderedDict{Optimizer, Any}()
+
+    final_optim_state = StructuredSolvers.precise_solve(pb, x0, iterations_limit=nit_precisesolve)
     x_opt = final_optim_state.additionalinfo.x
     M_opt = final_optim_state.additionalinfo.M
     F_opt = final_optim_state.f_x+final_optim_state.g_x
+
     display(M_opt)
+
+
+    optparams = OptimizerParams(
+        iterations_limit = 200,
+        trace_length = 200,
+    )
 
 
     #
     ### Running algorithms
     #
-    optimdata = OrderedDict{Optimizer, Any}()
+    # optimdata = OrderedDict{Optimizer, Any}()
 
     optimizer = ProximalGradient()
     trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
@@ -85,6 +112,7 @@ function main()
     trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
     optimdata[optimizer] = trace
 
+    # return
     # ## Adaptive manifold
     # optimizer = PartlySmoothOptimizer(manifold_update = ManifoldGradient(), update_selector=ManifoldFollowingSelector())
     # trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
@@ -113,6 +141,8 @@ function main()
     ### Build TikzAxis and final plotting object
     #
     fig = TikzDocument()
+
+    # F_opt = 2.5397380626720314e+00
 
     push!(fig, TikzPicture(StructuredSolvers.plot_fvals_iteration(optimdata)))
     push!(fig, TikzPicture(StructuredSolvers.plot_tangentres_iteration(optimdata)))

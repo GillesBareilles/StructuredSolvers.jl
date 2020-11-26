@@ -120,7 +120,7 @@ function solve_tCG_capped(Man, x, gradfₖ, hessf_x_h; ϵ=1e-8, ζ = 1e-8, maxit
         end
 
         if j >= 400
-            return -yⱼ * sign(inner_x(yⱼ, gradfₖ)), :Solution, j
+            return -yⱼ * sign(inner_x(yⱼ, gradfₖ)), :MaxIter, j
         end
         # (printlev>0) && @printf "%5i %.10e    %.10e    % .10e     %.10e\n" j norm_x(rⱼ) norm_x(vⱼ) inner(M, x, vⱼ, hessf_x_vⱼ) ν * norm_x(vⱼ)^2
         # if norm_x(rⱼ) < ϵ_residual || inner(M, x, vⱼ, hessf_x_vⱼ) < ν * norm_x(vⱼ)^2 || j > maxiter

@@ -10,36 +10,40 @@ using Distributions
 function main()
 
 
-    n, m, sparsity = 100, 130, 0.5
-    # n, m, sparsity = 10, 10, 0.5
-    pb = get_lasso_MLE(n=n, m=m, sparsity=sparsity)
-    pbname = "lasso"
+    ## TODO...
+    # n1, n2, m, sparsity = 10, 12, 3, 0.8
+    n1, n2, m, sparsity = 5, 6, 1, 0.8
+    pb = get_tracenorm_MLE(n1=n1, n2=n2, m=m, sparsity=sparsity)
+
+    pbname = "tracenorm-nxn"
 
     Random.seed!(4567)
-    x0 = rand(n) .* 0
+    x0 = zeros(n1, n2)
 
-    optparams = OptimizerParams(
-        iterations_limit = 35,
-        trace_length = 35,
-    )
-
-    @show pb
-    @show optparams
+    nit_precisesolve = 10
 
     #
     ### Optimal solution
     #
-    final_optim_state = StructuredSolvers.precise_solve(pb, x0, iterations_limit=3)
+    optimdata = OrderedDict{Optimizer, Any}()
+
+    final_optim_state = StructuredSolvers.precise_solve(pb, x0, iterations_limit=nit_precisesolve)
     x_opt = final_optim_state.additionalinfo.x
     M_opt = final_optim_state.additionalinfo.M
     F_opt = final_optim_state.f_x+final_optim_state.g_x
+
     display(M_opt)
+
+    optparams = OptimizerParams(
+        iterations_limit = 200,
+        trace_length = 200,
+    )
 
 
     #
     ### Running algorithms
     #
-    optimdata = OrderedDict{Optimizer, Any}()
+    # optimdata = OrderedDict{Optimizer, Any}()
 
     optimizer = ProximalGradient()
     trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
@@ -67,7 +71,7 @@ function main()
 
     # @show trace[end].additionalinfo.x
 
-    # Alternating
+    # # Alternating
     # optimizer = PartlySmoothOptimizer(manifold_update = ManifoldIdentity())
     # trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
     # optimdata[optimizer] = trace
@@ -85,6 +89,7 @@ function main()
     trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
     optimdata[optimizer] = trace
 
+    # return
     # ## Adaptive manifold
     # optimizer = PartlySmoothOptimizer(manifold_update = ManifoldGradient(), update_selector=ManifoldFollowingSelector())
     # trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)

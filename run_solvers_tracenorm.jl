@@ -8,19 +8,51 @@ using LinearAlgebra
 using Distributions
 
 function main()
+    ########################
+    # Tough nuclear problem
+    n1, n2, m, sparsity = 3, 3, 1, 0.8
+    seed = 1234
+    δ=0.01
 
+    A = Vector{Matrix{Float64}}(undef, m)
+    for i in 1:m
+        Random.seed!(seed+i)
+        A[i] = rand(Normal(), n1, n2)
+    end
 
-    n, m, sparsity = 100, 130, 0.5
-    # n, m, sparsity = 10, 10, 0.5
-    pb = get_lasso_MLE(n=n, m=m, sparsity=sparsity)
-    pbname = "lasso"
+    @show A
+    display(A[1])
 
-    Random.seed!(4567)
-    x0 = rand(n) .* 0
+    ## Generating structured signal
+    nsingvals = min(n1, n2)
+    optstructure = FixedRankMatrices(n1, n2, 1)
+
+    Random.seed!(seed-1)
+    x0 = project(optstructure, rand(Normal(), n1, n2).*100)
+    @show x0.U
+    @show x0.S
+    @show x0.Vt
+
+    x0_emb = embed(optstructure, x0)
+    @show rank(x0_emb)
+
+    ## Noised measurements
+    Random.seed!(seed)
+    e = rand(Normal(0, δ^2), m)
+
+    y = dot(A[1], x0) .+ e
+
+    pb = TracenormPb(A, y, n1, n2, 1, regularizer_lnuclear(δ), x0, optstructure)
+    ########################
+
+    pbname = "tracenorm-3x3"
+
+    nit_precisesolve = 10
+
 
     optparams = OptimizerParams(
-        iterations_limit = 35,
-        trace_length = 35,
+        iterations_limit = 200,
+        trace_length = 200,
     )
 
     @show pb
@@ -29,17 +61,34 @@ function main()
     #
     ### Optimal solution
     #
-    final_optim_state = StructuredSolvers.precise_solve(pb, x0, iterations_limit=3)
+    optimdata = OrderedDict{Optimizer, Any}()
+
+    x0 = [
+        0.206225  -0.363245  -0.0280843
+        -0.799533   1.4083     0.108883
+         0.649714  -1.1444    -0.0884798
+    ]
+
+    x0 = zeros(3, 3)
+
+
+    final_optim_state = StructuredSolvers.precise_solve(pb, x0, iterations_limit=nit_precisesolve)
     x_opt = final_optim_state.additionalinfo.x
     M_opt = final_optim_state.additionalinfo.M
     F_opt = final_optim_state.f_x+final_optim_state.g_x
+
     display(M_opt)
+
+    optparams = OptimizerParams(
+        iterations_limit = 200,
+        trace_length = 200,
+    )
 
 
     #
     ### Running algorithms
     #
-    optimdata = OrderedDict{Optimizer, Any}()
+    # optimdata = OrderedDict{Optimizer, Any}()
 
     optimizer = ProximalGradient()
     trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
@@ -68,9 +117,9 @@ function main()
     # @show trace[end].additionalinfo.x
 
     # Alternating
-    # optimizer = PartlySmoothOptimizer(manifold_update = ManifoldIdentity())
-    # trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
-    # optimdata[optimizer] = trace
+    optimizer = PartlySmoothOptimizer(manifold_update = ManifoldIdentity())
+    trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
+    optimdata[optimizer] = trace
 
     # optimizer = PartlySmoothOptimizer(manifold_update = ManifoldGradient())
     # trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
@@ -85,6 +134,7 @@ function main()
     trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
     optimdata[optimizer] = trace
 
+    # return
     # ## Adaptive manifold
     # optimizer = PartlySmoothOptimizer(manifold_update = ManifoldGradient(), update_selector=ManifoldFollowingSelector())
     # trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
