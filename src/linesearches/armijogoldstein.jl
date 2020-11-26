@@ -11,7 +11,10 @@ function linesearch(ls::ArmijoGoldstein, pb::CompositeProblem, M::Manifold, x, �
 
     # TODO: replace 0 by -ϵ, ϵ>0 for descent dirction criterion.
     # TODO: extrapolation step for gradient...
-    @assert inner(M, x, ∇fₘ, d) / (norm(M, x, ∇fₘ)*norm(M, x, d)) < 0
+    if inner(M, x, ∇fₘ, d) / (norm(M, x, ∇fₘ)*norm(M, x, d)) > 0
+        @warn "ArmijoGoldstein: non negative direction provided, taking opposite direction." inner(M, x, ∇fₘ, d), norm(M, x, ∇fₘ), norm(M, x, d)
+        d = -d
+    end
 
     α = 1
     α_low, α_up = 0, Inf

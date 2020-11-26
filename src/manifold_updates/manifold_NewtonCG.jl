@@ -2,48 +2,48 @@
 ### Manifold Truncated Newton
 ###########################################################
 """
-    ManifoldTruncatedNewton
+    ManNewtonCG
 
 Optimizer performing inexact Newton steps on a prescribed manifold. The inexactness in
 the approximation of the Newton step is controlled by `νₖ`: one expects a direction `dᴺ`
 such that
         ||∇²(f+g)(x)[dᴺ] + ∇(f+g)|| ≤ νₖ ||∇(f+g)||
 """
-@with_kw struct ManifoldTruncatedNewton <: ManifoldUpdate
+@with_kw struct ManNewtonCG <: ManifoldUpdate
     linesearch::ManifoldLinesearch = ArmijoGoldstein()
-    ν_reductionfactor::Float64 = 0.5
+    # ν_reductionfactor::Float64 = 0.5
 end
-Base.summary(::ManifoldTruncatedNewton) = "ManTruncNewton"
+Base.summary(::ManNewtonCG) = "ManNewtonCG"
 
-@with_kw mutable struct ManifoldTruncatedNewtonState <: AbstractUpdateState
+@with_kw mutable struct ManNewtonCGState <: AbstractUpdateState
     norm_∇fgₘ::Float64 = -1.0
+    d_type::Symbol = :Unsolved
     νₖ::Float64 = 1.0
     CG_niter::Int64 = -1
     CG_ε::Float64 = -1
     CG_residual::Float64 = -1
-    d_type::Symbol = :Unsolved
     norm_dᴺ::Float64 = -1
     cosθ::Float64 = -1
     λ_x::Float64 = -1
     ls_niter::Int64 = -1
 end
 
-initial_state(::ManifoldTruncatedNewton, x, reg) = ManifoldTruncatedNewtonState()
+initial_state(::ManNewtonCG, x, reg) = ManNewtonCGState()
 
 # str_updatelog(o::ManifoldGradient, t::ManifoldGradientState) = @sprintf "ls-nit %2i\t\t||gradₘ f+g|| %.3e" t.ls_niter t.norm_∇fgₘ
 
-function str_updatelog(::ManifoldTruncatedNewton, t::ManifoldTruncatedNewtonState)
+function str_updatelog(::ManNewtonCG, t::ManNewtonCGState)
     resstyle = (t.CG_residual <= t.CG_ε) ? "0" : "4;1"
     return string(
-        (@sprintf "CG: nit:%3i  %s νₖ:%.1e ε:%.1e res:" t.CG_niter string(t.d_type) t.νₖ t.CG_ε),
+        (@sprintf "%-17s CG: nit:%3i  ε:%.1e res:" t.d_type t.CG_niter t.CG_ε),
         "\033[$(resstyle)m",
         (@sprintf "%.1e" t.CG_residual),
         "\033[0m",
-        (@sprintf "     |dᴺ|:%.3e   cos(θₖ):%.1e  λ(x):%.1e   ls-nit%2i" t.norm_dᴺ t.cosθ t.λ_x t.ls_niter)
+        (@sprintf "     |dᴺ|:%.3e   cos(θₖ):%.1e  λ(x):%.1e  ls-nit %2i" t.norm_dᴺ t.cosθ t.λ_x t.ls_niter)
     )
 end
 
-function update_iterate!(state::PartlySmoothOptimizerState{Tx}, pb, o::ManifoldTruncatedNewton) where Tx
+function update_iterate!(state::PartlySmoothOptimizerState{Tx}, pb, o::ManNewtonCG) where Tx
     ###
     grad_fgₖ = state.tempvec_man
     M = state.M
@@ -58,7 +58,8 @@ function update_iterate!(state::PartlySmoothOptimizerState{Tx}, pb, o::ManifoldT
     ncalls_∇f = 0
     ncalls_∇²fh = 0
 
-    @unpack ν_reductionfactor = o
+    # @unpack ν_reductionfactor = o
+    ν_reductionfactor = 1.0
     @unpack νₖ = state_TN
 
     ## 1. Get first & second order information
@@ -76,23 +77,30 @@ function update_iterate!(state::PartlySmoothOptimizerState{Tx}, pb, o::ManifoldT
     # check_tangent_vector(M, x, grad_fgₖ)
 
     ## 2. Get Truncated Newton direction
-    ϵ_residual = min(0.5, sqrt(norm_rgrad)) * norm_rgrad    # Forcing sequence as sugested in NW, p. 168
-    ϵ_residual = 1e-13
-    νₖ = 1e-10
-    maxiter = 400
-    dᴺ, state_TN.CG_niter, state_TN.d_type = solve_tCG(M, x, grad_fgₖ, hessfg_x_h, ϵ_residual = ϵ_residual, ν = νₖ, printlev=0, maxiter=maxiter)
+    # ϵ_residual = min(0.5, sqrt(norm_rgrad)) * norm_rgrad    # Forcing sequence as sugested in NW, p. 168
+    # ϵ_residual = 1e-15
+    # νₖ = 1e-10
+    # maxiter = 20
+    dₖ, state_TN.d_type, state_TN.CG_niter = solve_tCG_capped(M, x, grad_fgₖ, hessfg_x_h; ϵ=1e-15, ζ = 1e-15, maxiter=1e5, check_tvectors=false, printlev=0)
+
+    # @show d_type
+    if state_TN.d_type == :NegativeCurvature
+        dₖ = - sign(inner(M, x, dₖ, grad_fgₖ)) * inner(M, x, dₖ, hessfg_x_h(dₖ)) * norm(M, x, dₖ)^(-3) * dₖ
+    else
+        @assert state_TN.d_type == :Solution "Unknown d_type" state_TN.d_type
+    end
+
 
     # check_tangent_vector(M, x, dᴺ)
 
     ## 3. Execute linesearch
     # TODO: make linesearch inplace for x, return status.
     hist_ls = Dict()
-    x_ls = linesearch(o.linesearch, pb, M, x, grad_fgₖ, dᴺ, hist=hist_ls)
+    x_ls = linesearch(o.linesearch, pb, M, x, grad_fgₖ, dₖ, hist=hist_ls)
 
     x = x_ls
     state_TN.ls_niter = hist_ls[:niter]
 
-    # @show sign.(Vector(x))
 
     ncalls_f += hist_ls[:ncalls_f]
 
@@ -113,11 +121,11 @@ function update_iterate!(state::PartlySmoothOptimizerState{Tx}, pb, o::ManifoldT
     state.x.man_repr = x_ls
 
     ### Logging data
-    state_TN.CG_ε = ϵ_residual
-    state_TN.CG_residual = norm(M, x, hessfg_x_h(dᴺ) + grad_fgₖ)
-    state_TN.norm_dᴺ = norm(M, x, dᴺ)
-    state_TN.cosθ = inner(M, x, -dᴺ, grad_fgₖ)/(norm(M, x, dᴺ)*norm_rgrad)
-    state_TN.λ_x = inner(M, x, -dᴺ, grad_fgₖ)
+    # state_TN.CG_ε = ϵ_residual
+    state_TN.CG_residual = norm(M, x, hessfg_x_h(dₖ) + grad_fgₖ)
+    state_TN.norm_dᴺ = norm(M, x, dₖ)
+    state_TN.cosθ = inner(M, x, -dₖ, grad_fgₖ)/(norm(M, x, dₖ)*norm_rgrad)
+    state_TN.λ_x = inner(M, x, -dₖ, grad_fgₖ)
     state_TN.ls_niter = hist_ls[:niter]
 
     return

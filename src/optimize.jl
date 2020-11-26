@@ -44,7 +44,7 @@ function display_logs(state, pb, optimizer, iteration, time, optimstate_extensio
         print("\033[$(linestyle)m")
 
         F_x = state.f_x + state.g_x
-        @printf "%4i  %.16e  %-.3e  %-.3e  %-.3e    %-.3e  %-.3e " iteration F_x state.f_x state.g_x normstep minsubgradient_tan minsubgradient_norm
+        @printf "%4i  %.16e  %-.3e  %-.3e  %-.3e    %-.3e  % .3e " iteration F_x state.f_x state.g_x normstep minsubgradient_tan minsubgradient_norm
 
         ## underlined manifold if state changed
         manstyle = (state.M == state.M_old) ? linestyle : "4"

@@ -3,14 +3,14 @@
 ### Point / vector wrappers
 #
 @enum ReprType ambiant_repr manifold_repr
-mutable struct Point{Tambiantpoint, Tmanifoldpoint, Tmanifold}
+mutable struct Point{Tambiantpoint, Tmanifoldpoint}
     amb_repr::Tambiantpoint
     man_repr::Tmanifoldpoint
-    M::Tmanifold
+    M::Manifold
     repr::ReprType
 end
 
-function copy(p::Point{Tambpt, Tmanpt, Tman}) where {Tambpt, Tmanpt, Tman}
+function copy(p::Point)
     return Point(deepcopy(p.amb_repr), deepcopy(p.man_repr), deepcopy(p.M), p.repr)
 end
 

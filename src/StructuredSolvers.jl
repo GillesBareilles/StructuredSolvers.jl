@@ -10,6 +10,7 @@ using Printf
 using TimerOutputs
 using Parameters
 
+using LinearAlgebra
 import Base: show, summary, copy
 import CompositeProblems: firstorder_optimality_tangnorm
 import StructuredProximalOperators: embed
@@ -64,6 +65,7 @@ export WholespaceProximalGradient
 abstract type ManifoldLinesearch end
 include("linesearches/armijogoldstein.jl")
 include("manifold_updates/tangent_CG.jl")
+include("manifold_updates/tangent_cappedCG.jl")
 
 include("manifold_updates/manifold_identity.jl")
 include("manifold_updates/manifold_gradient.jl")

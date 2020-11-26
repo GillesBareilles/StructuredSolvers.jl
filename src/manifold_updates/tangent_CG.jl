@@ -67,6 +67,3 @@ function solve_tCG(M, x, gradfₖ, hessf_x_h; ν=1e-3, ϵ_residual = 1e-13, maxi
 
     return dₖ, j, d_type
 end
-
-
-

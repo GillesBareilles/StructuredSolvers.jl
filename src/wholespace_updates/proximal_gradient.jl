@@ -16,7 +16,6 @@ str_updatelog(o::WholespaceProximalGradient, t::WholespaceProximalGradientState)
 
 function update_iterate!(state::PartlySmoothOptimizerState, pb, m::WholespaceProximalGradient)
     γ = state.update_to_updatestate[m].γ
-    x = state.x.man_repr
 
     @assert state.x.repr == ambiant_repr
 
@@ -26,8 +25,9 @@ function update_iterate!(state::PartlySmoothOptimizerState, pb, m::WholespacePro
 
     state.temppoint_amb .= state.x.amb_repr .- γ .* state.∇f_x
 
-    M = prox_αg!(pb, state.x.man_repr, state.temppoint_amb, γ)
+    state.x.man_repr, M = prox_αg(pb, state.temppoint_amb, γ)
     state.x.repr = manifold_repr
+    state.x.M = M
 
     state.M = M
     state.update_to_updatestate[m].γ = γ
