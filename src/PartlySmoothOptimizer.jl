@@ -26,25 +26,25 @@ mutable struct PartlySmoothOptimizerState{Tambiant, Tmanpoint, Tmanvec} <: Optim
     previous_update
     update_to_updatestate::Dict
 end
+
 function PartlySmoothOptimizerState(
     o::PartlySmoothOptimizer,
-    x_amb::Tambiant,
-    g::R;
-) where {Tambiant,R}
-    wholespace_man = wholespace_manifold(g, x_amb)
-    x_man = project(wholespace_man, x_amb)
-
+    x_amb::T,
+    g::R,
+    M::Manifold
+) where {T,R}
+    x_man = project(M, x_amb)
     return PartlySmoothOptimizerState(
         -1,
-        Point(x_amb, x_man, wholespace_man, ambiant_repr),
-        Point(x_amb, x_man, wholespace_man, ambiant_repr),
-        wholespace_man,
-        wholespace_man,
+        Point(x_amb, x_man, M, ambiant_repr),
+        Point(x_amb, x_man, M, ambiant_repr),
+        M,
+        M,
         -Inf,
         -Inf,
         zero(x_amb),
         zero(x_amb),
-        zero_tangent_vector(wholespace_man, x_man),
+        zero_tangent_vector(M, x_man),
         nothing,
         nothing,
         Dict()
@@ -74,8 +74,8 @@ function update_fg∇f!(state::PartlySmoothOptimizerState, pb)
     return
 end
 
-function initial_state(o::PartlySmoothOptimizer, x, reg)
-    initstate = PartlySmoothOptimizerState(o, x, reg)
+function initial_state(o::PartlySmoothOptimizer, x, reg; manifold=wholespace_manifold(reg, x))
+    initstate = PartlySmoothOptimizerState(o, x, reg, manifold)
     initstate.update_to_updatestate[o.wholespace_update] = initial_state(o.wholespace_update, x, reg)
     initstate.update_to_updatestate[o.manifold_update] = initial_state(o.manifold_update, x, reg)
     return initstate
@@ -94,8 +94,8 @@ end
 
 function convert_point_repr!(x::Point{Tamb, Tman}, ::ManifoldUpdate) where {Tamb, Tman}
     if x.repr == ambiant_repr
-        printstyled("TODO: update ambiant repr\n", color=:red)
-        @assert false
+        x.man_repr = project(x.M, x.amb_repr)
+        x.repr = manifold_repr
     end
     return
 end

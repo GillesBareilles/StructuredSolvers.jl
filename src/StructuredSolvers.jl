@@ -10,6 +10,8 @@ using Printf
 using TimerOutputs
 using Parameters
 
+using DelimitedFiles
+
 using LinearAlgebra
 import Base: show, summary, copy
 import CompositeProblems: firstorder_optimality_tangnorm

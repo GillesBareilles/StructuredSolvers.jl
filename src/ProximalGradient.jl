@@ -66,7 +66,7 @@ function update_fg∇f!(state::ProximalGradientState, pb)
     return
 end
 
-initial_state(o::ProximalGradient, x, reg) = ProximalGradientState(o, x, reg)
+initial_state(o::ProximalGradient, x, reg; manifold=nothing) = ProximalGradientState(o, x, reg)
 
 function update_iterate!(state::ProximalGradientState, pb, optimizer::ProximalGradient)
 

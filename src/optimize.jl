@@ -88,7 +88,8 @@ function optimize!(
     pb::CompositeProblem,
     optimizer::O,
     initial_x;
-    state::S = initial_state(optimizer, initial_x, pb.regularizer),
+    manifold = wholespace_manifold(pb.regularizer, initial_x),
+    state::S = initial_state(optimizer, initial_x, pb.regularizer, manifold=manifold),
     optimstate_extensions = [],
     optparams = OptimizerParams()
 ) where {O<:Optimizer,S<:OptimizerState}

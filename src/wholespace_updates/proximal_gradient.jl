@@ -10,7 +10,7 @@ end
 
 Base.summary(::WholespaceProximalGradient) = "ProxGrad"
 
-initial_state(::WholespaceProximalGradient, x, reg) = WholespaceProximalGradientState()
+initial_state(::WholespaceProximalGradient, x, reg; manifold=nothing) = WholespaceProximalGradientState()
 
 str_updatelog(o::WholespaceProximalGradient, t::WholespaceProximalGradientState) = @sprintf "γ: %.3e" t.γ
 
