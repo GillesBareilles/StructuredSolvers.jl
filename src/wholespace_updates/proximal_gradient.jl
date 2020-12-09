@@ -25,7 +25,7 @@ function update_iterate!(state::PartlySmoothOptimizerState, pb, m::WholespacePro
 
     state.temppoint_amb .= state.x.amb_repr .- γ .* state.∇f_x
 
-    state.x.man_repr, M = prox_αg(pb, state.temppoint_amb, γ)
+    state.x.man_repr, M = prox_αg(pb, state.temppoint_amb, γ); state.ncalls_proxg += 1
     state.x.repr = manifold_repr
     state.x.M = M
 
@@ -58,6 +58,7 @@ function backtrack_f_lipschitzgradient!(state::PartlySmoothOptimizerState, pb, �
         state.temppoint_amb .= state.x.amb_repr .- γ .* state.∇f_x
 
         # f(pb, state.temp) ≤ state.f_x - 1/(2*γ) * norm(state.temp-state.x)^2 && break
+        state.ncalls_f += 1
         f(pb, state.temppoint_amb) ≤ state.f_x - γ / 2 * ∇f_norm2 && break
 
         ncalls_f += 1

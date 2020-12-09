@@ -54,36 +54,27 @@ function update_iterate!(state::PartlySmoothOptimizerState{Tx}, pb, o::ManNewton
 
     state_TN = state.update_to_updatestate[o]
 
-    ncalls_f = 0
-    ncalls_∇f = 0
-    ncalls_∇²fh = 0
-
     # @unpack ν_reductionfactor = o
     ν_reductionfactor = 1.0
     @unpack νₖ = state_TN
 
     ## 1. Get first & second order information
     # TODO: remove intermediate alloc from .+= op.
-    grad_fgₖ = egrad_to_rgrad(M, x, state.∇f_x) + ∇M_g(pb, M, x)
+    grad_fgₖ = egrad_to_rgrad(M, x, state.∇f_x) + ∇M_g(pb, M, x); state.ncalls_gradₘF += 1
     function hessfg_x_h(ξ)
-        ncalls_∇²fh += 1
+        state.ncalls_HessₘF += 1
         return ehess_to_rhess(M, x, state.∇f_x, ∇²f_h(pb, x, ξ), ξ) + ∇²M_g_ξ(pb, M, x, ξ)
     end
 
     norm_rgrad = norm(M, x, grad_fgₖ)
     state_TN.norm_∇fgₘ = norm_rgrad
 
-    ncalls_∇f += 1
     # check_tangent_vector(M, x, grad_fgₖ)
 
     ## 2. Get Truncated Newton direction
-    # ϵ_residual = min(0.5, sqrt(norm_rgrad)) * norm_rgrad    # Forcing sequence as sugested in NW, p. 168
-    # ϵ_residual = 1e-15
-    # νₖ = 1e-10
-    # maxiter = 20
+    # TODO: turn this into approximalte solution finding
     dₖ, state_TN.d_type, state_TN.CG_niter = solve_tCG_capped(M, x, grad_fgₖ, hessfg_x_h; ϵ=1e-15, ζ = 1e-15, maxiter=1e5, check_tvectors=false, printlev=0)
 
-    # @show d_type
     if state_TN.d_type == :NegativeCurvature
         dₖ = - sign(inner(M, x, dₖ, grad_fgₖ)) * abs(inner(M, x, dₖ, hessfg_x_h(dₖ))) * norm(M, x, dₖ)^(-3) * dₖ
     elseif state_TN.d_type == :MaxIter
@@ -97,13 +88,12 @@ function update_iterate!(state::PartlySmoothOptimizerState{Tx}, pb, o::ManNewton
     ## 3. Execute linesearch
     # TODO: make linesearch inplace for x, return status.
     hist_ls = Dict()
-    x_ls = linesearch(o.linesearch, pb, M, x, grad_fgₖ, dₖ, hist=hist_ls)
+    x_ls = linesearch(o.linesearch, state, pb, M, x, grad_fgₖ, dₖ, hist=hist_ls)
 
     x = x_ls
     state_TN.ls_niter = hist_ls[:niter]
 
 
-    ncalls_f += hist_ls[:ncalls_f]
 
     ## 4. Update CG precision
     ν_strat = :ls

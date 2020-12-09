@@ -13,6 +13,7 @@ extrapolation_state(::VanillaProxGrad, x, g) = VanillaProxGradState()
 function extrapolation!(::VanillaProxGrad, pgstate, extrapolationstate, pb)
     pgstate.temp .= pgstate.x .- pgstate.γ .* pgstate.∇f_x
     M = prox_αg!(pb, pgstate.x, pgstate.temp, pgstate.γ)
+    pgstate.ncalls_proxg += 1
     pgstate.M = M
     return
 end
@@ -46,6 +47,7 @@ function extrapolation!(apg::AcceleratedProxGrad, pgstate, extrastate, pb)
     pgstate.temp .= pgstate.x .- pgstate.γ .* pgstate.∇f_x
     M = prox_αg!(pb, extrastate.y, pgstate.temp, pgstate.γ)
     pgstate.M = M
+    pgstate.ncalls_proxg += 1
 
     t_next = (p + sqrt(q + r * extrastate.t^2)) / 2
 
@@ -83,6 +85,7 @@ function extrapolation!(o::Test1ProxGrad, pgstate, extrastate, pb)
     ## Compute proximal gradient iterate
     pgstate.temp .= pgstate.x .- pgstate.γ .* pgstate.∇f_x
     M = prox_αg!(pb, accel_state.y, pgstate.temp, pgstate.γ)
+    pgstate.ncalls_proxg += 1
 
     t_next = (p + sqrt(q + r * accel_state.t^2)) / 2
 
@@ -135,6 +138,7 @@ function extrapolation!(o::Test2ProxGrad, pgstate, extrastate, pb)
     ## Compute proximal gradient iterate
     pgstate.temp .= pgstate.x .- pgstate.γ .* pgstate.∇f_x
     M_accelerated = prox_αg!(pb, accel_state.y, pgstate.temp, pgstate.γ)
+    pgstate.ncalls_proxg += 1
 
     t_next = (p + sqrt(q + r * accel_state.t^2)) / 2
 
@@ -146,10 +150,12 @@ function extrapolation!(o::Test2ProxGrad, pgstate, extrastate, pb)
     ## 1. proxgrad
     pgstate.temp .= extrastate.candidate_pg .- pgstate.γ .* ∇f(pb, extrastate.candidate_pg)
     M_PG_pg = prox_αg!(pb, pgstate.temp, pgstate.temp, pgstate.γ)
+    pgstate.ncalls_∇f += 1; pgstate.ncalls_proxg += 1
 
     pgstate.temp .=
         extrastate.candidate_apg .- pgstate.γ .* ∇f(pb, extrastate.candidate_apg)
     M_PG_apg = prox_αg!(pb, pgstate.temp, pgstate.temp, pgstate.γ)
+    pgstate.ncalls_∇f += 1; pgstate.ncalls_proxg += 1
 
     ## Here, if apg has less structure than pg (in image by proxgrad), no acceleration
     if !(M_PG_pg < M_PG_apg)
@@ -203,6 +209,7 @@ function extrapolation!(o::MFISTA, pgstate, extrastate, pb)
     ## Compute proximal gradient iterate
     pgstate.temp .= pgstate.x .- pgstate.γ .* pgstate.∇f_x
     M = prox_αg!(pb, accel_state.y, pgstate.temp, pgstate.γ)
+    pgstate.ncalls_proxg += 1
 
     t_next = (p + sqrt(q + r * accel_state.t^2)) / 2
 
@@ -253,6 +260,7 @@ function extrapolation!(rapg::RestartedAPG, pgstate, extrastate, pb)
     ## Compute proximal gradient iterate
     pgstate.temp .= pgstate.x .- pgstate.γ .* pgstate.∇f_x
     M = prox_αg!(pb, accel_state.y, pgstate.temp, pgstate.γ)
+    pgstate.ncalls_proxg += 1
 
     t_next = (p + sqrt(q + r * accel_state.t^2)) / 2
 

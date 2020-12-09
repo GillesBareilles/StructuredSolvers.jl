@@ -6,12 +6,15 @@
     norm_step::Float64 = -1.0
     norm_minsubgradient_tangent::Float64 = -1.0
     norm_minsubgradient_normal::Float64 = -1.0
-    nb_calls_f::Int64 = -1
-    nb_calls_g::Int64 = -1
-    nb_calls_∇f::Int64 = -1
-    nb_calls_proxg::Int64 = -1
-    nb_calls_∇²fh::Int64 = -1
-    nb_calls_∇²gξ::Int64 = -1
+    ncalls_f::Int64 = -1
+    ncalls_g::Int64 = -1
+    ncalls_∇f::Int64 = -1
+    ncalls_proxg::Int64 = -1
+    ncalls_gradₘF::Int64 = -1
+    ncalls_HessₘF::Int64 = -1
+    ncalls_retr::Int64 = -1
+    niter_CG::Int64 = -1
+    niter_manls::Int64 = -1
     additionalinfo::T = NamedTuple()
 end
 

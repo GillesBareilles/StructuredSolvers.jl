@@ -61,23 +61,7 @@ function display_logs(state, pb, optimizer, iteration, time, optimstate_extensio
         println()
     end
 
-    return OptimizationState(
-        it = iteration,
-        time = time,
-        f_x = state.f_x,
-        g_x = state.g_x,
-        norm_step = normstep,
-        norm_minsubgradient_tangent = minsubgradient_tan,
-        norm_minsubgradient_normal = minsubgradient_norm,
-        additionalinfo = (;
-            zip(
-                [osextension.key for osextension in optimstate_extensions],
-                [
-                    copy(osextension.getvalue(state))
-                    for osextension in optimstate_extensions
-                ],
-            )...),
-    )
+    return build_optimstate(optimizer, state, iteration, time, normstep, minsubgradient_tan, minsubgradient_norm, optimstate_extensions)
 end
 
 
@@ -157,6 +141,19 @@ function optimize!(
         # stopped_by_empymanifold = manifold_dimension(state.M) == 0
         stopped_by_time_limit = _time - t0 > time_limit
         stopped = stopped_by_time_limit
+    end
+
+    if !tracing && (converged || stopped)
+        optimizationstate = display_logs(
+            state,
+            pb,
+            optimizer,
+            iteration,
+            time() - t0,
+            optimstate_extensions,
+            tracing,
+        )
+        push!(tr, optimizationstate)
     end
 
     ## Optimality of last iterate

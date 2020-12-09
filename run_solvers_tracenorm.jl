@@ -125,7 +125,7 @@ function main()
     # trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
     # optimdata[optimizer] = trace
 
-    optimizer = PartlySmoothOptimizer(manifold_update = ManifoldTruncatedNewton())
+    optimizer = PartlySmoothOptimizer(manifold_update = ManTruncatedNewton())
     trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
     optimdata[optimizer] = trace
 
@@ -140,13 +140,13 @@ function main()
     # trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
     # optimdata[optimizer] = trace
 
-    # optimizer = PartlySmoothOptimizer(manifold_update = ManifoldTruncatedNewton(), update_selector=ManifoldFollowingSelector())
+    # optimizer = PartlySmoothOptimizer(manifold_update = ManTruncatedNewton(), update_selector=ManifoldFollowingSelector())
     # trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
     # optimdata[optimizer] = trace
 
     # # Constant manifold
     # x0 = project(M_opt, x0)
-    # optimizer = PartlySmoothOptimizer(manifold_update = ManifoldTruncatedNewton(), update_selector=ConstantManifoldSelector(M_opt))
+    # optimizer = PartlySmoothOptimizer(manifold_update = ManTruncatedNewton(), update_selector=ConstantManifoldSelector(M_opt))
     # trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
     # optimdata[optimizer] = trace
 
@@ -154,7 +154,7 @@ function main()
     # ## Adaptive manifold
 
     # ## Constant manifold
-    # optimizer = PartlySmoothOptimizer(manifold_update = ManifoldTruncatedNewton(), update_selector=ConstantManifoldSelector(optman))
+    # optimizer = PartlySmoothOptimizer(manifold_update = ManTruncatedNewton(), update_selector=ConstantManifoldSelector(optman))
     # trace = optimize!(pb, optimizer, x0, optparams=optparams, optimstate_extensions=StructuredSolvers.osext)
     # optimdata[optimizer] = trace
 

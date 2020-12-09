@@ -75,19 +75,13 @@ include("manifold_updates/manifold_truncatednewton.jl")
 include("manifold_updates/manifold_NewtonCG.jl")
 export ManifoldIdentity
 export ManifoldGradient
-export ManifoldTruncatedNewton
+export ManTruncatedNewton
+export ManNewton
 export ManNewtonCG
 
+export Newton
+export TruncatedNewton
 
-using Colors
-using PGFPlotsX
-using LaTeXStrings
-using Contour
-
-include("plots/plot_trace.jl")
-include("plots/plot_highlevel.jl")
-
-include("utils_numexps.jl")
 
 include("convergence.jl")
 
@@ -106,6 +100,7 @@ export RestartedAPG, RestartedAPGState
 
 export OptimizationState, OptimizationTrace
 export Optimizer
+
 
 export optimize!
 

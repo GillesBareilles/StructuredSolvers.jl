@@ -6,7 +6,7 @@
 end
 
 
-function linesearch(ls::ArmijoGoldstein, pb::CompositeProblem, M::Manifold, x, ∇fₘ, d; hist=Dict())
+function linesearch(ls::ArmijoGoldstein, state, pb::CompositeProblem, M::Manifold, x, ∇fₘ, d; hist=Dict())
     @unpack ω₁, ω₂, τₑ = ls
 
     # TODO: replace 0 by -ϵ, ϵ>0 for descent dirction criterion.
@@ -24,14 +24,12 @@ function linesearch(ls::ArmijoGoldstein, pb::CompositeProblem, M::Manifold, x, �
     x_cand = deepcopy(x)
     dh_0 = inner(M, x, ∇fₘ, d)
 
-    hist[:ncalls_f] = 1
 
     it_ls = 0
     validpoint = false
     while !validpoint
-        x_cand = retract(M, x, α*d)
-        F_cand = F(pb, x_cand)
-        hist[:ncalls_f] += 1
+        x_cand = retract(M, x, α*d); state.ncalls_retr += 1
+        F_cand = F(pb, x_cand); state.ncalls_f += 1; state.ncalls_g += 1
 
         if F_x + ω₁*α*dh_0 < F_cand
             α_up = α
@@ -60,6 +58,7 @@ function linesearch(ls::ArmijoGoldstein, pb::CompositeProblem, M::Manifold, x, �
         @debug "Linesearch: too small step" F_x + ω₂*α*dh_0 F_cand
     end
 
+    state.niter_manls += it_ls
     hist[:niter] = it_ls
     hist[:end_fval] = F_cand
 

@@ -26,12 +26,13 @@ function update_iterate!(state::PartlySmoothOptimizerState, pb, o::ManifoldGradi
 
     # TODO: remove intermediate alloc from .+= op.
     grad_fgₖ = egrad_to_rgrad(M, x, state.∇f_x) + ∇M_g(pb, M, x)
+    state.ncalls_gradₘF += 1
 
     state.update_to_updatestate[o].norm_∇fgₘ = norm(M, x, grad_fgₖ)
 
     # TODO: make linesearch inplace for x, return status.
     hist_ls = Dict()
-    x_ls = linesearch(o.linesearch, pb, M, x, grad_fgₖ, -grad_fgₖ, hist=hist_ls)
+    x_ls = linesearch(o.linesearch, state, pb, M, x, grad_fgₖ, -grad_fgₖ, hist=hist_ls)
 
     state.x.man_repr = x_ls
     state.update_to_updatestate[o].ls_niter = hist_ls[:niter]

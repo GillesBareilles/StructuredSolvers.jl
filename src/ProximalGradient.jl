@@ -26,6 +26,10 @@ mutable struct ProximalGradientState{Tx,Te} <: OptimizerState
     temp::Tx
     γ::Float64
     extrapolation_state::Te
+    ncalls_f::Int64
+    ncalls_g::Int64
+    ncalls_∇f::Int64
+    ncalls_proxg::Int64
 end
 function ProximalGradientState(
     o::ProximalGradient,
@@ -46,6 +50,7 @@ function ProximalGradientState(
         zero(x),
         γ,
         extra_state,
+        0, 0, 0, 0
     )
 end
 
@@ -63,6 +68,9 @@ function update_fg∇f!(state::ProximalGradientState, pb)
     state.g_x = g(pb, state.x)
     ∇f!(pb, state.∇f_x, state.x)
     state.it += 1
+    state.ncalls_∇f += 1
+    state.ncalls_f += 1
+    state.ncalls_g += 1
     return
 end
 
@@ -72,14 +80,39 @@ function update_iterate!(state::ProximalGradientState, pb, optimizer::ProximalGr
 
     ## Run backtracking line search to update estimate of gradient Lipschitz constant
     if optimizer.backtracking
-        ncalls_f, state.γ = backtrack_f_lipschitzgradient!(state, pb, state.γ)
+        state.γ = backtrack_f_lipschitzgradient!(state, pb, state.γ)
     end
 
     extrapolation!(optimizer.extrapolation, state, state.extrapolation_state, pb)
     return
 end
 
-
+function build_optimstate(::ProximalGradient, state, iteration, time, normstep, minsubgradient_tan, minsubgradient_norm, optimstate_extensions)
+    return OptimizationState(
+        it = iteration,
+        time = time,
+        f_x = state.f_x,
+        g_x = state.g_x,
+        norm_step = normstep,
+        ncalls_f = state.ncalls_f,
+        ncalls_g = state.ncalls_g,
+        ncalls_∇f = state.ncalls_∇f,
+        ncalls_proxg = state.ncalls_proxg,
+        # ncalls_gradₘF = 0,
+        # ncalls_HessₘF = 0,
+        norm_minsubgradient_tangent = minsubgradient_tan,
+        norm_minsubgradient_normal = minsubgradient_norm,
+        additionalinfo = (;
+            zip(
+                [osextension.key for osextension in optimstate_extensions],
+                [
+                    copy(osextension.getvalue(state))
+                    for osextension in optimstate_extensions
+                ],
+            )...
+        ),
+    )
+end
 
 
 
@@ -99,16 +132,15 @@ function backtrack_f_lipschitzgradient!(state, pb, γ)
     ∇f_norm2 = norm(state.∇f_x)^2
 
     itmax = 200
-    ncalls_f = 0
 
     it_ls = 0
     while it_ls <= itmax
         state.temp .= state.x .- γ .* state.∇f_x
 
         # f(pb, state.temp) ≤ state.f_x - 1/(2*γ) * norm(state.temp-state.x)^2 && break
+        state.ncalls_f += 1
         f(pb, state.temp) ≤ state.f_x - γ / 2 * ∇f_norm2 && break
 
-        ncalls_f += 1
         γ = γ / τ
         it_ls += 1
     end
@@ -118,5 +150,5 @@ function backtrack_f_lipschitzgradient!(state, pb, γ)
     end
 
 
-    return ncalls_f, γ
+    return γ
 end

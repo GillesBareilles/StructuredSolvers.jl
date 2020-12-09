@@ -25,6 +25,15 @@ mutable struct PartlySmoothOptimizerState{Tambiant, Tmanpoint, Tmanvec} <: Optim
     selected_update
     previous_update
     update_to_updatestate::Dict
+    ncalls_f::Int64
+    ncalls_g::Int64
+    ncalls_∇f::Int64
+    ncalls_proxg::Int64
+    ncalls_gradₘF::Int64
+    ncalls_HessₘF::Int64
+    ncalls_retr::Int64
+    niter_CG::Int64
+    niter_manls::Int64
 end
 
 function PartlySmoothOptimizerState(
@@ -47,7 +56,8 @@ function PartlySmoothOptimizerState(
         zero_tangent_vector(M, x_man),
         nothing,
         nothing,
-        Dict()
+        Dict(),
+        0, 0, 0, 0, 0, 0, 0, 0, 0
     )
 end
 
@@ -67,9 +77,9 @@ end
 function update_fg∇f!(state::PartlySmoothOptimizerState, pb)
     x = get_repr(state.x)
 
-    state.f_x = f(pb, x)
-    state.g_x = g(pb, x)
-    ∇f!(pb, state.∇f_x, x)
+    state.f_x = f(pb, x); state.ncalls_f += 1
+    state.g_x = g(pb, x); state.ncalls_g += 1
+    ∇f!(pb, state.∇f_x, x); state.ncalls_∇f += 1
     state.it += 1
     return
 end
@@ -113,6 +123,36 @@ function update_iterate!(ostate::PartlySmoothOptimizerState, pb, optimizer::Part
     return
 end
 
+
+function build_optimstate(::PartlySmoothOptimizer, state, iteration, time, normstep, minsubgradient_tan, minsubgradient_norm, optimstate_extensions)
+    return OptimizationState(
+        it = iteration,
+        time = time,
+        f_x = state.f_x,
+        g_x = state.g_x,
+        norm_step = normstep,
+        norm_minsubgradient_tangent = minsubgradient_tan,
+        norm_minsubgradient_normal = minsubgradient_norm,
+        ncalls_f = state.ncalls_f,
+        ncalls_g = state.ncalls_g,
+        ncalls_∇f = state.ncalls_∇f,
+        ncalls_proxg = state.ncalls_proxg,
+        ncalls_gradₘF = state.ncalls_gradₘF,
+        ncalls_HessₘF = state.ncalls_HessₘF,
+        ncalls_retr = state.ncalls_retr,
+        niter_CG = state.niter_CG,
+        niter_manls = state.niter_manls,
+        additionalinfo = (;
+            zip(
+                [osextension.key for osextension in optimstate_extensions],
+                [
+                    copy(osextension.getvalue(state))
+                    for osextension in optimstate_extensions
+                ],
+            )...
+        ),
+    )
+end
 
 
 #
