@@ -35,7 +35,7 @@ function display_logs(state, pb, optimizer, iteration, time, optimstate_extensio
     x_old = get_repr(state.x_old)
 
     normstep = norm(embed(state.x) - embed(state.x_old))
-    minsubgradient_tan, minsubgradient_norm = firstorder_optimality_tangnorm(pb, state.x, state.M, state.∇f_x)
+    minsubgradient_tan, minsubgradient_norm = firstorder_optimality_tangnorm(pb, get_repr(state.x), state.M, state.∇f_x)
 
     if tracing
         F_x = state.f_x + state.g_x
@@ -161,7 +161,7 @@ function optimize!(
     M = state.M
 
     println("Optimality status of last iterate:")
-    res_tan, res_norm = firstorder_optimality_tangnorm(pb, x, M, state.∇f_x)
+    res_tan, res_norm = firstorder_optimality_tangnorm(pb, get_repr(state.x), M, state.∇f_x)
 
     println("- ||Π_tangent(∇f+ḡ)||      : ", res_tan)
     println("- ||Π_normal(∇f+ḡ)||       : ", res_norm)
