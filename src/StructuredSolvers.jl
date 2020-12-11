@@ -55,9 +55,11 @@ export PartlySmoothOptimizer
 include("update_selectors/alternatingUpdateSelector.jl")
 include("update_selectors/manifold_following.jl")
 include("update_selectors/constant_manifold.jl")
+include("update_selectors/targetmanifold.jl")
 export AlternatingUpdateSelector
 export ManifoldFollowingSelector
 export ConstantManifoldSelector
+export TwoPhaseTargetSelector
 
 # Wholespace updates
 include("wholespace_updates/proximal_gradient.jl")
