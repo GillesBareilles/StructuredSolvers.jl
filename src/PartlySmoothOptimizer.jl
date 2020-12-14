@@ -146,7 +146,7 @@ function build_optimstate(::PartlySmoothOptimizer, state, iteration, time, norms
             zip(
                 [osextension.key for osextension in optimstate_extensions],
                 [
-                    copy(osextension.getvalue(state))
+                    deepcopy(osextension.getvalue(state))
                     for osextension in optimstate_extensions
                 ],
             )...
