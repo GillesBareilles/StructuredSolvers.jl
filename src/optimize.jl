@@ -83,10 +83,10 @@ function optimize!(
     @unpack show_trace, trace_length = optparams
     tracing = show_trace
 
-    t0 = time()
     iteration = 0
     converged = false
     stopped = false
+    time_count = 0.0
 
 
     update_fg∇f!(state, pb)
@@ -98,7 +98,7 @@ function optimize!(
         pb,
         optimizer,
         iteration,
-        time() - t0,
+        time_count,
         optimstate_extensions,
         tracing,
     )
@@ -112,12 +112,12 @@ function optimize!(
         state.x_old = deepcopy(state.x)
 
 
+        _time = time()
         @timeit to "iterate update" update_iterate!(state, pb, optimizer)
+        time_count += time() - _time
 
         @timeit to "oracles calls" update_fg∇f!(state, pb)
 
-
-        _time = time()
 
         ## Decide if tracing this iteration
         tracing = show_trace && (mod(iteration, ceil(iterations_limit / trace_length)) == 0 || iteration==iterations_limit)
@@ -127,7 +127,7 @@ function optimize!(
             pb,
             optimizer,
             iteration,
-            _time - t0,
+            time_count,
             optimstate_extensions,
             tracing,
         )
@@ -139,7 +139,7 @@ function optimize!(
         end
 
         # stopped_by_empymanifold = manifold_dimension(state.M) == 0
-        stopped_by_time_limit = _time - t0 > time_limit
+        stopped_by_time_limit = time_count > time_limit
         stopped = stopped_by_time_limit
     end
 
@@ -149,7 +149,7 @@ function optimize!(
             pb,
             optimizer,
             iteration,
-            time() - t0,
+            time_count,
             optimstate_extensions,
             tracing,
         )
