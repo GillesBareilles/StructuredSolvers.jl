@@ -3,14 +3,15 @@
 ###########################################################
 @with_kw struct WholespaceProximalGradient <: WholespaceUpdate
     backtracking::Bool = true
+    γ_init = 1e5
 end
 @with_kw mutable struct WholespaceProximalGradientState <: AbstractUpdateState
-    γ::Float64 = 1e5
+    γ::Float64
 end
 
 Base.summary(::WholespaceProximalGradient) = "ProxGrad"
 
-initial_state(::WholespaceProximalGradient, x, reg; manifold=nothing) = WholespaceProximalGradientState()
+initial_state(o::WholespaceProximalGradient, x, reg; manifold=nothing) = WholespaceProximalGradientState(γ = o.γ_init)
 
 str_updatelog(o::WholespaceProximalGradient, t::WholespaceProximalGradientState) = @sprintf "γ: %.3e" t.γ
 
