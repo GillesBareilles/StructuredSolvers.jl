@@ -148,7 +148,7 @@ function optimize!(
         stopped = stopped_by_time_limit
     end
 
-    if !tracing && (converged || stopped)
+    if show_trace && !tracing
         optimizationstate = display_logs(
             state,
             pb,
@@ -156,7 +156,7 @@ function optimize!(
             iteration,
             time_count,
             optimstate_extensions,
-            tracing,
+            true,
         )
         push!(tr, optimizationstate)
     end
@@ -165,11 +165,13 @@ function optimize!(
     x = state.x
     M = state.M
 
-    println("Optimality status of last iterate:")
-    res_tan, res_norm = firstorder_optimality_tangnorm(pb, get_repr(state.x), M, state.∇f_x)
+    if show_trace
+        println("Optimality status of last iterate:")
+        res_tan, res_norm = firstorder_optimality_tangnorm(pb, get_repr(state.x), M, state.∇f_x)
 
-    println("- ||Π_tangent(∇f+ḡ)||      : ", res_tan)
-    println("- ||Π_normal(∇f+ḡ)||       : ", res_norm)
+        println("- ||Π_tangent(∇f+ḡ)||      : ", res_tan)
+        println("- ||Π_normal(∇f+ḡ)||       : ", res_norm)
+    end
 
 
     if getfield(StructuredSolvers, :timeit_debug_enabled)()

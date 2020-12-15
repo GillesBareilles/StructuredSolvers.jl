@@ -45,12 +45,12 @@ function solve_tCG(M, x, gradfₖ, hessf_x_h; ν=1e-3, ϵ_residual = 1e-13, maxi
                 # printstyled("Exiting: ||rⱼ|| < ϵ : $(norm_x(rⱼ)) < $ϵ_residual\n", color=:red)
             elseif j > maxiter
                 d_type = :MaxIter
-                printstyled("Exiting: j > maxiter : $j > $maxiter\n", color=:red)
+                # printstyled("Exiting: j > maxiter : $j > $maxiter\n", color=:red)
             else
                 d_type = :QuasiNegCurvature
                 a = inner(M, x, vⱼ, hessf_x_vⱼ)
                 b = ν * norm_x(vⱼ)^2
-                printstyled("Exiting: ⟨vⱼ, hessf_x(vⱼ)⟩ < ν * ||vⱼ||² : $a < $b\n", color=:red)
+                # printstyled("Exiting: ⟨vⱼ, hessf_x(vⱼ)⟩ < ν * ||vⱼ||² : $a < $b\n", color=:red)
             end
 
             break

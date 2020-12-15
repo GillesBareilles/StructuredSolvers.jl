@@ -5,20 +5,39 @@
 abstract type TruncationStrategy end
 @with_kw struct Newton <: TruncationStrategy
     ε_CGres::Float64 = 1e-13
-    ν_CGreductionfactor::Float64 = 1e-10
 end
-update_εν(n::Newton, norm_rgrad) = n.ε_CGres, n.ν_CGreductionfactor
-
-
-struct TruncatedNewton <: TruncationStrategy
+function update_CG_ε!(state_TN::ManTruncatedNewtonState, n::Newton, norm_rgrad)
+    state_TN.CG_ε = n.ε_CGres
+    return
 end
-function update_εν(::TruncatedNewton, norm_rgrad)
-    return (
-        min(0.5, sqrt(norm_rgrad)) * norm_rgrad,    # Forcing sequence as sugested in NW, p. 168
-        1e-10
-    )
+function update_CG_ν!(state_TN, n::Newton, norm_rgrad, nit_ls)
+    state_TN.νₖ = 1e-15
+    return
 end
 
+
+@with_kw struct TruncatedNewton <: TruncationStrategy
+    ν_reductionfactor::Float64 = 0.5
+end
+function update_CG_ε!(state_TN::ManTruncatedNewtonState, tn::TruncatedNewton, norm_rgrad::Float64)
+    state_TN.CG_ε = min(0.5, sqrt(norm_rgrad)) * norm_rgrad    # Forcing sequence as sugested in NW, p. 168
+    return
+end
+function update_CG_ν!(state_TN, n::TruncatedNewton, norm_rgrad, nit_ls)
+    # ν_strat = :ls
+    # if ν_strat == :ls
+    # if nit_ls == 1
+    #     state_TN.νₖ *= n.ν_reductionfactor
+    # end
+    # elseif ν_strat == :lsnormgrad
+    if nit_ls == 1 && state_TN.νₖ ≥ 1e-2 * norm_rgrad^2
+        state_TN.νₖ *= n.ν_reductionfactor
+    end
+    # else
+    #     @error "unknown reduction strategy"
+    # end
+    return
+end
 
 """
     ManTruncatedNewton
@@ -30,7 +49,6 @@ such that
 """
 @with_kw struct ManTruncatedNewton{T} <: ManifoldUpdate
     linesearch::ManifoldLinesearch = ArmijoGoldstein()
-    ν_reductionfactor::Float64 = 0.5
     CG_maxiter::Int64 = 400
     truncationstrat::T = TruncatedNewton()
 end
@@ -61,8 +79,15 @@ initial_state(::ManTruncatedNewton, x, reg) = ManTruncatedNewtonState()
 
 function str_updatelog(::ManTruncatedNewton, t::ManTruncatedNewtonState)
     resstyle = (t.CG_residual <= t.CG_ε) ? "0" : "4;1"
+    dtype_style = "0"
+    (t.d_type == :MaxIter) && (dtype_style = "33")
+    (t.d_type == :QuasiNegCurvature) && (dtype_style = "34")
     return string(
-        (@sprintf "CG: nit:%3i  %s νₖ:%.1e ε:%.1e res:" t.CG_niter string(t.d_type) t.νₖ t.CG_ε),
+        (@sprintf "CG: nit:%3i  " t.CG_niter),
+        "\033[$(dtype_style)m",
+        string(t.d_type),
+        "\033[0m",
+        (@sprintf " νₖ:%.1e ε:%.1e res:" t.νₖ t.CG_ε),
         "\033[$(resstyle)m",
         (@sprintf "%.1e" t.CG_residual),
         "\033[0m",
@@ -81,9 +106,6 @@ function update_iterate!(state::PartlySmoothOptimizerState{Tx}, pb, o::ManTrunca
 
     state_TN = state.update_to_updatestate[o]
 
-    @unpack ν_reductionfactor = o
-    @unpack νₖ = state_TN
-
     ## 1. Get first & second order information
     # TODO: remove intermediate alloc from .+= op.
     grad_fgₖ = egrad_to_rgrad(M, x, state.∇f_x) + ∇M_g(pb, M, x); state.ncalls_gradₘF += 1
@@ -98,9 +120,9 @@ function update_iterate!(state::PartlySmoothOptimizerState{Tx}, pb, o::ManTrunca
 
 
     ## 2. Get Truncated Newton direction
-    ϵ_residual, νₖ = update_εν(o.truncationstrat, norm_rgrad)
+    update_CG_ε!(state_TN, o.truncationstrat, norm_rgrad)
 
-    dᴺ, state_TN.CG_niter, state_TN.d_type = solve_tCG(M, x, grad_fgₖ, hessfg_x_h, ϵ_residual = ϵ_residual, ν = νₖ, printlev=0, maxiter=o.CG_maxiter)
+    dᴺ, state_TN.CG_niter, state_TN.d_type = solve_tCG(M, x, grad_fgₖ, hessfg_x_h, ϵ_residual = state_TN.CG_ε, ν = state_TN.νₖ, printlev=0, maxiter=o.CG_maxiter)
 
     # check_tangent_vector(M, x, dᴺ)
 
@@ -114,23 +136,10 @@ function update_iterate!(state::PartlySmoothOptimizerState{Tx}, pb, o::ManTrunca
 
 
     ## 4. Update CG precision
-    ν_strat = :ls
-    if ν_strat == :ls
-        if hist_ls[:niter] == 1
-            state_TN.νₖ *= ν_reductionfactor
-        end
-    elseif ν_strat == :lsnormgrad
-        if hist_ls[:niter] == 1 && νₖ ≥ 1e-2 * norm_rgrad^2
-            state_TN.νₖ *= ν_reductionfactor
-        end
-    else
-        @error "unknown reduction strategy"
-    end
-
+    update_CG_ν!(state_TN, o.truncationstrat, norm_rgrad, hist_ls[:niter])
     state.x.man_repr = x_ls
 
     ### Logging data
-    state_TN.CG_ε = ϵ_residual
     state_TN.CG_residual = norm(M, x, hessfg_x_h(dᴺ) + grad_fgₖ)
     state_TN.norm_dᴺ = norm(M, x, dᴺ)
     state_TN.cosθ = inner(M, x, -dᴺ, grad_fgₖ)/(norm(M, x, dᴺ)*norm_rgrad)

@@ -32,10 +32,10 @@ function linesearch(ls::ArmijoGoldstein, state, pb::CompositeProblem, M::Manifol
         F_cand = F(pb, x_cand); state.ncalls_f += 1; state.ncalls_g += 1
 
         if F_x > F_cand > F_x - 3*eps(F_cand)
-            @warn "Reached conditionning of funtion here"
-            @printf "F_x        : %.16e\n" F_x
-            @printf "F_cand     : %.16e\n" F_cand
-            @printf "eps(F_cand): %.16e\n" eps(F_cand)
+            @warn "Linesearch: reached function conditionning of funtion here, #it ls: $it_ls"
+            # @printf "F_x        : %.16e\n" F_x
+            # @printf "F_cand     : %.16e\n" F_cand
+            # @printf "eps(F_cand): %.16e\n" eps(F_cand)
             break
         end
 
