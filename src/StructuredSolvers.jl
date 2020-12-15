@@ -17,8 +17,6 @@ import Base: show, summary, copy
 import CompositeProblems: firstorder_optimality_tangnorm
 import StructuredProximalOperators: embed
 
-const to = TimerOutput()
-
 abstract type Optimizer end
 abstract type ManifoldOptimizer <: Optimizer end
 abstract type AmbiantOptimizer <: Optimizer end

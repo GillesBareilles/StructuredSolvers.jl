@@ -78,6 +78,10 @@ function optimize!(
     optparams = OptimizerParams()
 ) where {O<:Optimizer,S<:OptimizerState}
 
+    if getfield(StructuredSolvers, :timeit_debug_enabled)()
+        reset_timer!()
+    end
+
     ## Collecting parameters
     @unpack iterations_limit, time_limit = optparams
     @unpack show_trace, trace_length = optparams
@@ -113,10 +117,11 @@ function optimize!(
 
 
         _time = time()
-        @timeit to "iterate update" update_iterate!(state, pb, optimizer)
+        @timeit_debug "update_iterate" update_iterate!(state, pb, optimizer)
+
+        @timeit_debug "oracles calls" update_fg∇f!(state, pb)
         time_count += time() - _time
 
-        @timeit to "oracles calls" update_fg∇f!(state, pb)
 
 
         ## Decide if tracing this iteration
@@ -165,6 +170,16 @@ function optimize!(
 
     println("- ||Π_tangent(∇f+ḡ)||      : ", res_tan)
     println("- ||Π_normal(∇f+ḡ)||       : ", res_norm)
+
+
+    if getfield(StructuredSolvers, :timeit_debug_enabled)()
+        printstyled("\n\n")
+        printstyled("**********************************\n", color=:red)
+        print_timer()
+        printstyled("**********************************", color=:red)
+        printstyled("\n\n")
+    end
+
 
 
     return tr

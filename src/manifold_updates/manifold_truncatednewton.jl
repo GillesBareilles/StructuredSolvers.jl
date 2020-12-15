@@ -100,8 +100,7 @@ function update_iterate!(state::PartlySmoothOptimizerState{Tx}, pb, o::ManTrunca
     ## 2. Get Truncated Newton direction
     ϵ_residual, νₖ = update_εν(o.truncationstrat, norm_rgrad)
 
-    maxiter = 400
-    dᴺ, state_TN.CG_niter, state_TN.d_type = solve_tCG(M, x, grad_fgₖ, hessfg_x_h, ϵ_residual = ϵ_residual, ν = νₖ, printlev=0, maxiter=maxiter)
+    dᴺ, state_TN.CG_niter, state_TN.d_type = solve_tCG(M, x, grad_fgₖ, hessfg_x_h, ϵ_residual = ϵ_residual, ν = νₖ, printlev=0, maxiter=o.CG_maxiter)
 
     # check_tangent_vector(M, x, dᴺ)
 

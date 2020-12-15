@@ -42,6 +42,10 @@ trace = optimize!(pb, optimizer, x0, optimstate_extensions = optimstate_extensio
 ```
 where `get_iterate` takes as input an `OptimizerState`. Multiple dispatch allows to adapt the getter definition to the optimizer state if need be.
 
+### Timings
+
+Method calls may be (roughly) timed using `TimerOutputs`. This functionality is turned on/off by calling `TimerOutputs.enable_debug_timings(StructuredSolvers)` and `TimerOutputs.disable_debug_timings(StructuredSolvers)`.
+
 ### Plotting from traces
 
 

@@ -113,12 +113,12 @@ end
 function update_iterate!(ostate::PartlySmoothOptimizerState, pb, optimizer::PartlySmoothOptimizer)
     ostate.M = ostate.M_old
 
-    select_update!(optimizer.update_selector, ostate, optimizer, pb)
+    @timeit_debug "updateselect" select_update!(optimizer.update_selector, ostate, optimizer, pb)
 
     # A composite update expects points in ambiant space, while a manifold one in manifold representation.
-    convert_point_repr!(ostate, optimizer, pb)
+    @timeit_debug "convpointrepr" convert_point_repr!(ostate, optimizer, pb)
 
-    update_iterate!(ostate, pb, ostate.selected_update)
+    @timeit_debug "updateit" update_iterate!(ostate, pb, ostate.selected_update)
 
     return
 end
