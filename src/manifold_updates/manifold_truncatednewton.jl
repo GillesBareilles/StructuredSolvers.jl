@@ -6,38 +6,10 @@ abstract type TruncationStrategy end
 @with_kw struct Newton <: TruncationStrategy
     ε_CGres::Float64 = 1e-13
 end
-function update_CG_ε!(state_TN::ManTruncatedNewtonState, n::Newton, norm_rgrad)
-    state_TN.CG_ε = n.ε_CGres
-    return
-end
-function update_CG_ν!(state_TN, n::Newton, norm_rgrad, nit_ls)
-    state_TN.νₖ = 1e-15
-    return
-end
-
-
 @with_kw struct TruncatedNewton <: TruncationStrategy
     ν_reductionfactor::Float64 = 0.5
 end
-function update_CG_ε!(state_TN::ManTruncatedNewtonState, tn::TruncatedNewton, norm_rgrad::Float64)
-    state_TN.CG_ε = min(0.5, sqrt(norm_rgrad)) * norm_rgrad    # Forcing sequence as sugested in NW, p. 168
-    return
-end
-function update_CG_ν!(state_TN, n::TruncatedNewton, norm_rgrad, nit_ls)
-    # ν_strat = :ls
-    # if ν_strat == :ls
-    # if nit_ls == 1
-    #     state_TN.νₖ *= n.ν_reductionfactor
-    # end
-    # elseif ν_strat == :lsnormgrad
-    if nit_ls == 1 && state_TN.νₖ ≥ 1e-2 * norm_rgrad^2
-        state_TN.νₖ *= n.ν_reductionfactor
-    end
-    # else
-    #     @error "unknown reduction strategy"
-    # end
-    return
-end
+
 
 """
     ManTruncatedNewton
@@ -95,6 +67,43 @@ function str_updatelog(::ManTruncatedNewton, t::ManTruncatedNewtonState)
     )
 end
 
+
+#
+### Truncation strategies
+#
+function update_CG_ε!(state_TN::ManTruncatedNewtonState, n::Newton, norm_rgrad)
+    state_TN.CG_ε = n.ε_CGres
+    return
+end
+function update_CG_ν!(state_TN, n::Newton, norm_rgrad, nit_ls)
+    state_TN.νₖ = 1e-15
+    return
+end
+
+
+function update_CG_ε!(state_TN::ManTruncatedNewtonState, tn::TruncatedNewton, norm_rgrad::Float64)
+    state_TN.CG_ε = min(0.5, sqrt(norm_rgrad)) * norm_rgrad    # Forcing sequence as sugested in NW, p. 168
+    return
+end
+function update_CG_ν!(state_TN, n::TruncatedNewton, norm_rgrad, nit_ls)
+    # ν_strat = :ls
+    # if ν_strat == :ls
+    # if nit_ls == 1
+    #     state_TN.νₖ *= n.ν_reductionfactor
+    # end
+    # elseif ν_strat == :lsnormgrad
+    if nit_ls == 1 && state_TN.νₖ ≥ 1e-2 * norm_rgrad^2
+        state_TN.νₖ *= n.ν_reductionfactor
+    end
+    # else
+    #     @error "unknown reduction strategy"
+    # end
+    return
+end
+
+#
+### Point update
+#
 function update_iterate!(state::PartlySmoothOptimizerState{Tx}, pb, o::ManTruncatedNewton) where Tx
     ###
     grad_fgₖ = state.tempvec_man
