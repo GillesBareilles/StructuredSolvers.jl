@@ -33,7 +33,7 @@ function linesearch(ls::Armijo, state, pb::CompositeProblem, M::Manifold, x, ∇
     # TODO
     @debug "Armijo: rellength stop crit not implemented..."
 
-    λ::Float64 = 1
+    λ::Float64 = 1.0
 
 
     F_x = F(pb, x)
@@ -41,7 +41,7 @@ function linesearch(ls::Armijo, state, pb::CompositeProblem, M::Manifold, x, ∇
     F_candprev = Inf
     x_cand = deepcopy(x)
     # dh_0 = inner(M, x, ∇fₘ, d)
-    λprev::Float64 = 0.0
+    λprev::Float64 = 1.0
 
     it_ls = 0
     while retcode == :IncompleteExecution

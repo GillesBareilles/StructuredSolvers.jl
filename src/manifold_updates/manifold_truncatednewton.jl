@@ -7,7 +7,7 @@ abstract type TruncationStrategy end
     ε_CGres::Float64 = 1e-13
 end
 @with_kw struct TruncatedNewton <: TruncationStrategy
-    ν_reductionfactor::Float64 = 0.5
+    ν_reductionfactor::Float64 = 0.1
 end
 
 
@@ -88,15 +88,15 @@ end
 function update_CG_ν!(state_TN, n::TruncatedNewton, norm_rgrad, nit_ls)
     # ν_strat = :ls
     # if ν_strat == :ls
-    # if nit_ls <= 1
-    #     state_TN.νₖ *= 0.1
-    # end
+    if nit_ls == 0
+        state_TN.νₖ *= state_TN.ν_reductionfactor
+    end
     # state_TN.νₖ = 1e-6
 
     # if ν_strat == :lsnormgrad
-    if nit_ls == 1 && state_TN.νₖ ≥ 1e-2 * norm_rgrad^2
-        state_TN.νₖ *= n.ν_reductionfactor
-    end
+    # if nit_ls <= 0 && state_TN.νₖ ≥ 1e-2 * norm_rgrad^2
+    #     state_TN.νₖ *= 0.1
+    # end
     # else
     #     @error "unknown reduction strategy"
     # end

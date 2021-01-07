@@ -39,6 +39,12 @@ function linesearch(ls::ArmijoGoldstein, state, pb::CompositeProblem, M::Manifol
             break
         end
 
+        if (F_x + ω₁*α*dh_0 ≥ F_cand) && (F_cand ≥ F_x + ω₂*α*dh_0)
+            # α = 1 should be accepted for superlinear convergence.
+            validpoint = true
+            break
+        end
+
         if F_x + ω₁*α*dh_0 < F_cand
             α_up = α
 
