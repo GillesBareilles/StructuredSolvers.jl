@@ -20,7 +20,7 @@ such that
         ||∇²(f+g)(x)[dᴺ] + ∇(f+g)|| ≤ νₖ ||∇(f+g)||
 """
 @with_kw struct ManTruncatedNewton{T} <: ManifoldUpdate
-    linesearch::ManifoldLinesearch = ArmijoGoldstein()
+    linesearch::ManifoldLinesearch = Armijo()
     CG_maxiter::Int64 = 400
     truncationstrat::T = TruncatedNewton()
 end
@@ -88,10 +88,12 @@ end
 function update_CG_ν!(state_TN, n::TruncatedNewton, norm_rgrad, nit_ls)
     # ν_strat = :ls
     # if ν_strat == :ls
-    # if nit_ls == 1
-    #     state_TN.νₖ *= n.ν_reductionfactor
+    # if nit_ls <= 1
+    #     state_TN.νₖ *= 0.1
     # end
-    # elseif ν_strat == :lsnormgrad
+    # state_TN.νₖ = 1e-6
+
+    # if ν_strat == :lsnormgrad
     if nit_ls == 1 && state_TN.νₖ ≥ 1e-2 * norm_rgrad^2
         state_TN.νₖ *= n.ν_reductionfactor
     end

@@ -10,7 +10,7 @@ such that
         ||∇²(f+g)(x)[dᴺ] + ∇(f+g)|| ≤ νₖ ||∇(f+g)||
 """
 @with_kw struct ManNewtonCG <: ManifoldUpdate
-    linesearch::ManifoldLinesearch = ArmijoGoldstein()
+    linesearch::ManifoldLinesearch = Armijo()
     # ν_reductionfactor::Float64 = 0.5
 end
 Base.summary(::ManNewtonCG) = "ManNewtonCG"

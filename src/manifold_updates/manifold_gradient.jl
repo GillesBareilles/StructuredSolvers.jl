@@ -2,7 +2,7 @@
 ### Manifold Gradient
 ###########################################################
 @with_kw struct ManifoldGradient <: ManifoldUpdate
-    linesearch::ManifoldLinesearch = ArmijoGoldstein()
+    linesearch::ManifoldLinesearch = Armijo()
 end
 Base.summary(o::ManifoldGradient) = "ManGradient"
 
