@@ -88,7 +88,7 @@ function update_iterate!(state::PartlySmoothOptimizerState{Tx}, pb, o::ManNewton
     ## 3. Execute linesearch
     # TODO: make linesearch inplace for x, return status.
     hist_ls = Dict()
-    x_ls = linesearch(o.linesearch, state, pb, M, x, grad_fgₖ, dₖ, hist=hist_ls)
+    x_ls = linesearch(o.linesearch, state, nothing, pb, M, x, grad_fgₖ, dₖ, hist=hist_ls)
 
     x = x_ls
     state_TN.ls_niter = hist_ls[:niter]

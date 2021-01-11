@@ -32,7 +32,7 @@ function update_iterate!(state::PartlySmoothOptimizerState, pb, o::ManifoldGradi
 
     # TODO: make linesearch inplace for x, return status.
     hist_ls = Dict()
-    x_ls = linesearch(o.linesearch, state, pb, M, x, grad_fgₖ, -grad_fgₖ, hist=hist_ls)
+    x_ls = linesearch(o.linesearch, state, nothing, pb, M, x, grad_fgₖ, -grad_fgₖ, hist=hist_ls)
 
     state.x.man_repr = x_ls
     state.update_to_updatestate[o].ls_niter = hist_ls[:niter]

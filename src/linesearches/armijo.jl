@@ -1,14 +1,47 @@
-@with_kw struct Armijo <: ManifoldLinesearch
+@with_kw struct Armijo{T} <: ManifoldLinesearch
     α::Float64 = 1e-4
     maxit::Int = 50
+    initstep_strat::T = UnitInitStep()
 end
+
+@with_kw mutable struct ArmijoState <: AbstractUpdateState
+    cur_funval::Float64 = Inf
+    prev_funval::Float64 = Inf
+    prev_initslope::Float64 = Inf
+end
+
+initial_state(ls::Armijo) = ArmijoState()
+
+
+#
+### Unit step size selection strategies
+#
+abstract type UnitStepsizeStrategy end
+struct UnitInitStep <: UnitStepsizeStrategy end
+struct QuadInterpolationInitStep <: UnitStepsizeStrategy end
+
+function init_stepsize(::UnitInitStep, lsstate::ArmijoState)
+    return 1.0
+end
+
+function init_stepsize(::QuadInterpolationInitStep, lsstate::ArmijoState)
+    α₀ = 1.0
+    if isinf(lsstate.cur_funval) || isinf(lsstate.prev_funval) || isinf(lsstate.prev_initslope)
+        @warn "LS: infinite value " isinf(lsstate.cur_funval) isinf(lsstate.prev_funval) isinf(lsstate.prev_initslope)
+    else
+        α₀ = 2*(lsstate.cur_funval - lsstate.prev_funval) / lsstate.prev_initslope
+    end
+    return min(1.01α₀, 1.0)
+end
+
+
 
 """
 linesearch(ls::Armijo, state, pb::CompositeProblem, M::Manifold, x, ∇fₘ, d; hist=Dict())
 
 Performs a backtracking linesearch following algorithm A.6.3.1 from [p. 326, Dennis Schnabel 1996]
 """
-function linesearch(ls::Armijo, state, pb::CompositeProblem, M::Manifold, x, ∇fₘ, d; hist=Dict())
+function linesearch(ls::Armijo, optimizerstate, linesearchstate, pb::CompositeProblem, M::Manifold, x, ∇fₘ, d; hist=Dict())
     # TODO: replace 0 by -ϵ, ϵ>0 for descent dirction criterion.
     # TODO: extrapolation step for gradient...
     if inner(M, x, ∇fₘ, d) / (norm(M, x, ∇fₘ)*norm(M, x, d)) > 0
@@ -33,20 +66,20 @@ function linesearch(ls::Armijo, state, pb::CompositeProblem, M::Manifold, x, ∇
     # TODO
     @debug "Armijo: rellength stop crit not implemented..."
 
-    λ::Float64 = 1.0
-
-
     F_x = F(pb, x)
     F_cand = Inf
     F_candprev = Inf
     x_cand = deepcopy(x)
     # dh_0 = inner(M, x, ∇fₘ, d)
-    λprev::Float64 = 1.0
+
+    linesearchstate.cur_funval = F_x
+    λ::Float64 = init_stepsize(ls.initstep_strat, linesearchstate)
+    λprev::Float64 = deepcopy(λ)
 
     it_ls = 0
     while retcode == :IncompleteExecution
-        x_cand = retract(M, x, λ*d); state.ncalls_retr += 1
-        F_cand = F(pb, x_cand); state.ncalls_f += 1; state.ncalls_g += 1
+        x_cand = retract(M, x, λ*d); optimizerstate.ncalls_retr += 1
+        F_cand = F(pb, x_cand); optimizerstate.ncalls_f += 1; optimizerstate.ncalls_g += 1
 
         if F_x > F_cand > F_x - 3*eps(F_cand)
             @warn "Armijo linesearch: reached function conditionning of funtion here, #it ls: $it_ls"
@@ -67,7 +100,7 @@ function linesearch(ls::Armijo, state, pb::CompositeProblem, M::Manifold, x, ∇
             break
             # return x
         else
-            if λ == 1.0
+            if it_ls == 0
                 λtemp = -initslope / (2*(F_cand - F_x - initslope))
             else
                 a, b = 1/(λ-λprev) * [
@@ -97,11 +130,16 @@ function linesearch(ls::Armijo, state, pb::CompositeProblem, M::Manifold, x, ∇
         (it_ls > ls.maxit) && (break)
     end
 
-    state.niter_manls += it_ls
+    optimizerstate.niter_manls += it_ls
     hist[:niter] = it_ls
     hist[:retcode] = retcode
     hist[:maxtaken] = maxtaken
     # hist[:end_fval] = F_cand
+
+
+    ## Update linesearch state
+    linesearchstate.prev_funval = F_x
+    linesearchstate.prev_initslope = initslope
 
     return x_cand
 end

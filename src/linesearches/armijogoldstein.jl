@@ -6,7 +6,7 @@
 end
 
 
-function linesearch(ls::ArmijoGoldstein, state, pb::CompositeProblem, M::Manifold, x, ∇fₘ, d; hist=Dict())
+function linesearch(ls::ArmijoGoldstein, state, linesearchstate, pb::CompositeProblem, M::Manifold, x, ∇fₘ, d; hist=Dict())
     @unpack ω₁, ω₂, τₑ = ls
 
     # TODO: replace 0 by -ϵ, ϵ>0 for descent dirction criterion.

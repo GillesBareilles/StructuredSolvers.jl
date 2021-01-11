@@ -32,7 +32,7 @@ ManNewton(kwargs...) = ManTruncatedNewton(truncationstrat=Newton(), kwargs...)
 
 
 
-@with_kw mutable struct ManTruncatedNewtonState <: AbstractUpdateState
+@with_kw mutable struct ManTruncatedNewtonState{Tlsstate} <: AbstractUpdateState
     norm_∇fgₘ::Float64 = -1.0
     νₖ::Float64 = 1.0
     CG_niter::Int64 = -1
@@ -43,9 +43,10 @@ ManNewton(kwargs...) = ManTruncatedNewton(truncationstrat=Newton(), kwargs...)
     cosθ::Float64 = -1
     λ_x::Float64 = -1
     ls_niter::Int64 = -1
+    linesearch_state::Tlsstate
 end
 
-initial_state(::ManTruncatedNewton, x, reg) = ManTruncatedNewtonState()
+initial_state(manTN::ManTruncatedNewton, x, reg) = ManTruncatedNewtonState(linesearch_state=initial_state(manTN.linesearch))
 
 # str_updatelog(o::ManifoldGradient, t::ManifoldGradientState) = @sprintf "ls-nit %2i\t\t||gradₘ f+g|| %.3e" t.ls_niter t.norm_∇fgₘ
 
@@ -89,7 +90,7 @@ function update_CG_ν!(state_TN, n::TruncatedNewton, norm_rgrad, nit_ls)
     # ν_strat = :ls
     # if ν_strat == :ls
     if nit_ls == 0
-        state_TN.νₖ *= state_TN.ν_reductionfactor
+        state_TN.νₖ *= n.ν_reductionfactor
     end
     # state_TN.νₖ = 1e-6
 
@@ -140,7 +141,7 @@ function update_iterate!(state::PartlySmoothOptimizerState{Tx}, pb, o::ManTrunca
     ## 3. Execute linesearch
     # TODO: make linesearch inplace for x, return status.
     hist_ls = Dict()
-    x_ls = linesearch(o.linesearch, state, pb, M, x, grad_fgₖ, dᴺ, hist=hist_ls)
+    x_ls = linesearch(o.linesearch, state, state_TN.linesearch_state, pb, M, x, grad_fgₖ, dᴺ, hist=hist_ls)
 
     x = x_ls
     state_TN.ls_niter = hist_ls[:niter]
