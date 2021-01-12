@@ -28,7 +28,7 @@ Base.summary(::ManTruncatedNewton{Newton}) = "ManNewton"
 Base.summary(::ManTruncatedNewton{TruncatedNewton}) = "ManTruncatedNewton"
 
 
-ManNewton(kwargs...) = ManTruncatedNewton(truncationstrat=Newton(), kwargs...)
+ManNewton(;kwargs...) = ManTruncatedNewton(truncationstrat=Newton(); kwargs...)
 
 
 

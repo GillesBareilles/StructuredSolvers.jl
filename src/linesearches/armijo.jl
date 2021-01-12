@@ -18,21 +18,21 @@ initial_state(ls::Armijo) = ArmijoState()
 #
 abstract type UnitStepsizeStrategy end
 struct UnitInitStep <: UnitStepsizeStrategy end
-struct QuadInterpolationInitStep <: UnitStepsizeStrategy end
+# struct QuadInterpolationInitStep <: UnitStepsizeStrategy end
 
 function init_stepsize(::UnitInitStep, lsstate::ArmijoState)
     return 1.0
 end
 
-function init_stepsize(::QuadInterpolationInitStep, lsstate::ArmijoState)
-    α₀ = 1.0
-    if isinf(lsstate.cur_funval) || isinf(lsstate.prev_funval) || isinf(lsstate.prev_initslope)
-        @warn "LS: infinite value " isinf(lsstate.cur_funval) isinf(lsstate.prev_funval) isinf(lsstate.prev_initslope)
-    else
-        α₀ = 2*(lsstate.cur_funval - lsstate.prev_funval) / lsstate.prev_initslope
-    end
-    return min(1.01α₀, 1.0)
-end
+# function init_stepsize(::QuadInterpolationInitStep, lsstate::ArmijoState)
+#     α₀ = 1.0
+#     if isinf(lsstate.cur_funval) || isinf(lsstate.prev_funval) || isinf(lsstate.prev_initslope)
+#         @warn "LS: infinite value " isinf(lsstate.cur_funval) isinf(lsstate.prev_funval) isinf(lsstate.prev_initslope)
+#     else
+#         α₀ = 2*(lsstate.cur_funval - lsstate.prev_funval) / lsstate.prev_initslope
+#     end
+#     return min(1.01α₀, 1.0)
+# end
 
 
 
@@ -92,15 +92,13 @@ function linesearch(ls::Armijo, optimizerstate, linesearchstate, pb::CompositePr
                 maxtaken = true
             end
             break
-            # return x_cand
         elseif λ < minlambda
             retcode = :Failure
             @warn "Armijo linesearch: failure"
             x_cand = retract(M, x, 0.0*d)
             break
-            # return x
         else
-            if it_ls == 0
+            if λ == 1.0
                 λtemp = -initslope / (2*(F_cand - F_x - initslope))
             else
                 a, b = 1/(λ-λprev) * [

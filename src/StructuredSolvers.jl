@@ -70,7 +70,7 @@ include("linesearches/armijo.jl")
 include("manifold_updates/tangent_CG.jl")
 include("manifold_updates/tangent_cappedCG.jl")
 export Armijo, ArmijoGoldstein, ArmijoState
-export UnitInitStep, QuadInterpolationInitStep
+export UnitInitStep#, QuadInterpolationInitStep
 
 include("manifold_updates/manifold_identity.jl")
 include("manifold_updates/manifold_gradient.jl")
